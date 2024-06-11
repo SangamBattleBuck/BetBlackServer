@@ -1,9 +1,12 @@
 {
   "files": [
-    "./src/main.ts"
+    "./src/main.ts",
+    "./src/MiscClass.ts",
+    "./src/DunesGame.ts"
   ],
   "compilerOptions": {
     "target": "es5",
+    //"module": "amd",//newly added
     "outFile": "./build/index.js",
     "strict": true,
     "removeComments": true,
