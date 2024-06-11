@@ -1,0 +1,26 @@
+{
+  "files": [
+    "./src/main.ts"
+  ],
+  "compilerOptions": {
+    "target": "es5",
+    "outFile": "./build/index.js",
+    "strict": true,
+    "removeComments": true,
+    "noUnusedLocals": true,
+    "noImplicitReturns": true,
+    "typeRoots": [
+      "./node_modules"
+    ],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": [
+      "dom",
+      "es5",
+      "scripthost",
+      "es2015",
+      "es2015.collection"
+    ]
+  }
+}
