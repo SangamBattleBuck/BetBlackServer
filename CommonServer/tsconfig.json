@@ -2,7 +2,8 @@
   "files": [
     "./src/main.ts",
     "./src/MiscClass.ts",
-    "./src/DunesGame.ts"
+    "./src/DunesGame.ts",
+    "./src/MiscOther.ts"
   ],
   "compilerOptions": {
     "target": "es5",

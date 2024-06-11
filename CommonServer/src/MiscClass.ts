@@ -1,5 +1,19 @@
 
     const emptyResponse = '{responseCode:501,\nmessage:\"emptyResponse or NotImplemented or improper json received \"}';
+    const const_Str_Success='Success'
+    abstract class ApiResponse<T>
+    {
+        responseCode: ResponseCode;
+        message: string;
+        data: T;
+
+        constructor(data: T,responseCode: ResponseCode = ResponseCode.OK, message: string = const_Str_Success)
+        {
+            this.responseCode = responseCode;
+            this.message = message;
+            this.data = data;
+        }
+    }
 
     class PlayerDetails
     {
@@ -62,24 +76,29 @@
         }
     }
 
-    class WaitingMatches
+    class MatchMakingResponse extends ApiResponse<MatchMakingResponseData>
     {
-        public waitingMatchesByRoomId: Map<string, MatchMakingResponseData>;
-        public waitingMatchesByMatchId: Map<string, MatchMakingResponseData>;
+
+    }
+
+    class WaitingMatches<T>
+    {
+        public waitingMatchesByRoomId: Map<string, T>;
+        public waitingMatchesByMatchId: Map<string, T>;
 
         public constructor()
         {
-            this.waitingMatchesByRoomId = new Map<string, MatchMakingResponseData>();
-            this.waitingMatchesByMatchId = new Map<string, MatchMakingResponseData>();
+            this.waitingMatchesByRoomId = new Map<string, T>();
+            this.waitingMatchesByMatchId = new Map<string, T>();
         }
 
-        public Set(roomId: string, matchId: string, mmr: MatchMakingResponseData): void
+        public Set(roomId: string, matchId: string, mmr: T): void
         {
             this.waitingMatchesByRoomId.set(roomId, mmr);
             this.waitingMatchesByMatchId.set(matchId, mmr);
         }
 
-        public GetMMRByRoomId(roomId: string): MatchMakingResponseData | null
+        public GetMMRByRoomId(roomId: string): T | null
         {
             if (this.waitingMatchesByRoomId.has(roomId))
             {
@@ -90,7 +109,7 @@
             }
         }
 
-        public GetMMRByMatchId(matchId: string): MatchMakingResponseData | null
+        public GetMMRByMatchId(matchId: string): T | null
         {
             if (this.waitingMatchesByMatchId.has(matchId))
             {

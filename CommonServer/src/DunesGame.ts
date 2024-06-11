@@ -1,5 +1,5 @@
 
-let dune_waitingMap= new WaitingMatches();
+let dune_waitingMap= new WaitingMatches<MatchMakingResponse>();
 const dune_gameName: string = 'Dunes';
 
 const Dune_CreateMatch: nkruntime.RpcFunction = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, payload: string): string
@@ -18,21 +18,22 @@ const Dune_CreateMatch: nkruntime.RpcFunction = function (ctx: nkruntime.Context
         return responseJson;
     } else
     {
-        let mmResponseData = dune_waitingMap.GetMMRByRoomId(matchDetail.roomId);
-        if (mmResponseData == null)
+        let mmResponse = dune_waitingMap.GetMMRByRoomId(matchDetail.roomId);
+        if (mmResponse == null)
         {
             let matchId = '';
             matchId = nk.matchCreate(dune_gameName);
-            mmResponseData = new MatchMakingResponseData(matchDetail.roomId, matchId, matchDetail.minPlayerCount, matchDetail.maxPlayerCount, null);
+            let mmData=new MatchMakingResponseData(matchDetail.roomId,matchId,matchDetail.minPlayerCount,matchDetail.maxPlayerCount,null);
+            mmResponse = new MatchMakingResponse(mmData);
             try
             {
-                dune_waitingMap.Set(matchDetail?.roomId, matchId, mmResponseData);
+                dune_waitingMap.Set(matchDetail?.roomId, matchId, mmResponse);
             } catch (error)
             {
                 logger.error(`TAG::PayLoad failed waitingMap: ${error}`);
             }
         }
-        return  JSON.stringify(mmResponseData);
+        return  JSON.stringify(mmResponse);
     }
 }
 
@@ -53,11 +54,11 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
             label: dune_gameName
         };
     }
-    let mmd = new MatchMakingDetails(mmr.roomId, mmr.minPlayerCount, mmr.maxPlayerCount, 3600);
+    let mmd = new MatchMakingDetails(mmr.data.roomId, mmr.data.minPlayerCount, mmr.data.maxPlayerCount, 3600);
     return {
         state: {
             matchData: mmd,
-            scores: Array.from({length: mmr.maxPlayerCount}, () => new ScoreData("", 0))
+            scores: Array.from({length: mmr.data.maxPlayerCount}, () => new ScoreData("", 0))
         },
         tickRate: 1, // 1 tick per second = 1 MatchLoop func invocations per second
         label: dune_gameName
@@ -81,7 +82,7 @@ const Dune_MatchJoin: nkruntime.MatchJoinFunction = function (ctx: nkruntime.Con
     let mmr = dune_waitingMap.GetMMRByMatchId(ctx.matchId);
     if (mmr != null)
     {
-        mmr.currentPlayerCount += 1;
+        mmr.data.currentPlayerCount += 1;
     } else
     {
         logger.error('Tag::serverBase MatchJoin mmr is null');
@@ -96,7 +97,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
     let mmr = dune_waitingMap.GetMMRByMatchId(ctx.matchId);
     if (mmr != null)
     {
-        mmr.currentPlayerCount -= 1;
+        mmr.data.currentPlayerCount -= 1;
     } else
     {
         logger.error('Tag::serverBase MatchJoin mmr is null');
