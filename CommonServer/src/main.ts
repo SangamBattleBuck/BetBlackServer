@@ -3,7 +3,7 @@ let InitModule: nkruntime.InitModule = function (ctx: nkruntime.Context, logger:
 
     logger.warn('Tag::serverMain start Init===');
     //<editor-fold desc="Dunes">
-    initializer.registerMatch('Dunes', {
+    initializer.registerMatch(dune_gameName, {
         matchInit: Dune_MatchInit,
         matchJoinAttempt: Dune_MatchJoinAttempted,
         matchJoin: Dune_MatchJoin,

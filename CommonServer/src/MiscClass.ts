@@ -1,20 +1,6 @@
 
     const emptyResponse = '{responseCode:501,\nmessage:\"emptyResponse or NotImplemented or improper json received \"}';
 
-    // abstract class Response<T>
-    // {
-    //     responseCode: number;
-    //     message: string;
-    //     data: T;
-    //
-    //     constructor(responseCode: number = 101, message: string = "Success", data: T)
-    //     {
-    //         this.responseCode = responseCode;
-    //         this.message = message;
-    //         this.data = data;
-    //     }
-    // }
-
     class PlayerDetails
     {
         playerName: string = "";
