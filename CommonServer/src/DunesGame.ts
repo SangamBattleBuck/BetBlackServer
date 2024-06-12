@@ -39,8 +39,9 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
     logger.warn(`${dunne_Tag} Dune_MatchInit 2 ${mmd}`)
     return {
         state: {
-            matchData: mmd,
-            scores: Array.from({length: params.minPlayerCount}, () => new ScoreData("", 0))
+            presences: {},
+            score: {},
+            match:mmd
         },
         tickRate: 1, // 1 tick per second = 1 MatchLoop func invocations per second
         label: dune_gameName
@@ -51,21 +52,38 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
     [key: string]: any;
 }): { state: nkruntime.MatchState; accept: boolean; rejectMessage?: string | undefined; } | null
 {
-    return {
-        state,
-        accept: true
-    };
+    var curentPlayerCount:number=state.presences.length;
+    var mmd:MatchMakingDetails=state.match;
+    if(curentPlayerCount<mmd.maxPlayerCount)
+    {
+        return {
+            state,
+            accept: true
+        };
+    }
+    else
+    {
+        return {
+            state,
+            accept: true,
+            rejectMessage:'room is full'
+        };
+    }
 }
 
 const Dune_MatchJoin: nkruntime.MatchJoinFunction = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, presences: nkruntime.Presence[]): {
     state: nkruntime.MatchState
 } | null
 {
+    presences.forEach(function (p) {
+        state.presences[p.userId] = p;
+    });
     let mmr = dune_waitingMap.GetMMRByMatchId(ctx.matchId);
-    if (mmr != null)
+    if (mmr != undefined)
     {
         mmr.data.currentPlayerCount += 1;
-    } else
+    }
+    else
     {
         logger.error('Tag::serverBase MatchJoin mmr is null');
     }
@@ -91,15 +109,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
     state: nkruntime.MatchState;
 } | null
 {
-    messages.forEach((x, y) =>
-    {
-        switch (y)
-        {
-            case 1:
-                //dispatcher.broadcastMessage()
-                break;
-        }
-    })
+    logger.warn(`${dunne_Tag} message length ${messages.length}`);
     return {
         state
     }
