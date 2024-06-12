@@ -98,26 +98,22 @@
             this.waitingMatchesByMatchId.set(matchId, mmr);
         }
 
-        public GetMMRByRoomId(roomId: string): T | null
+        public GetMMRByRoomId(roomId: string): T | undefined
         {
             if (this.waitingMatchesByRoomId.has(roomId))
             {
-                return this.waitingMatchesByRoomId.get(roomId) || null;
-            } else
-            {
-                return null;
+                return this.waitingMatchesByRoomId.get(roomId);
             }
+            return undefined;
         }
 
-        public GetMMRByMatchId(matchId: string): T | null
+        public GetMMRByMatchId(matchId: string): T | undefined
         {
             if (this.waitingMatchesByMatchId.has(matchId))
             {
-                return this.waitingMatchesByMatchId.get(matchId) || null;
-            } else
-            {
-                return null;
+                return this.waitingMatchesByMatchId.get(matchId);
             }
+            return undefined;
         }
 
         public DeletedByRoomId(matchId: string): boolean
