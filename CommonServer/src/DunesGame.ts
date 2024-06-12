@@ -6,7 +6,7 @@ const dunne_Tag:string='TAG::Dunes';
 const Dune_CreateMatch: nkruntime.RpcFunction = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, payload: string): string
 {
     let responseJson = emptyResponse;
-    let matchDetail: MatchMakingDetails | null = null;
+    let matchDetail: MatchMakingDetailsReceived | null = null;
     try
     {
         matchDetail = JSON.parse(payload);
@@ -17,14 +17,15 @@ const Dune_CreateMatch: nkruntime.RpcFunction = function (ctx: nkruntime.Context
     if (matchDetail == null)
     {
         return responseJson;
-    } else
+    }
+    else
     {
         let mmResponse = dune_waitingMap.GetMMRByRoomId(matchDetail.roomId);
         if (mmResponse == undefined)
         {
-            let matchId = '';
-            matchId = nk.matchCreate(dune_gameName,{roomName:matchDetail.roomId,minPlayerCount: matchDetail.minPlayerCount, maxPlayerCount: matchDetail.maxPlayerCount, autoDestroyRoom:matchDetail.autoDestroyRoom});
-            let mmData=new MatchMakingResponseData(matchDetail.roomId,matchId,matchDetail.minPlayerCount,matchDetail.maxPlayerCount,null);
+            //let param={roomName:matchDetail.roomId,minPlayerCount: matchDetail.minPlayerCount, maxPlayerCount: matchDetail.maxPlayerCount, autoDestroyRoom:matchDetail.autoDestroyRoom}
+            let matchId = nk.matchCreate(dune_gameName,matchDetail);
+            let mmData=new MatchMakingResponseData(matchDetail.roomId,matchId);
             mmResponse = new MatchMakingResponse(mmData);
             dune_waitingMap.Set(matchDetail.roomId, matchId, mmResponse);
         }
@@ -34,14 +35,17 @@ const Dune_CreateMatch: nkruntime.RpcFunction = function (ctx: nkruntime.Context
 
 const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, params: { [p: string]: any; }): { state: nkruntime.MatchState; tickRate: number; label: string; }
 {
-    logger.warn(`${dunne_Tag} Dune_MatchInit 1`)
-    let mmd = new MatchMakingDetails(params.roomName, params.minPlayerCount, params.maxPlayerCount, params.autoDestroyRoom);
-    logger.warn(`${dunne_Tag} Dune_MatchInit 2 ${mmd}`)
+    logger.warn(`TAG:MatchInit 1`);
+    let matchDetail:MatchMakingDetailsReceived=params as MatchMakingDetailsReceived;
+    logger.warn(`TAG:MatchInit 2`);
+    let matchMeta= new MatchMateState(matchDetail.roomId,matchDetail.minPlayerCount,matchDetail.maxPlayerCount,0,matchDetail.matchMakeWaitTime,matchDetail.gamePlayTime);
+    let currentTime = Date.now();
+    matchMeta.matchMakingStartTime=currentTime;
+    matchMeta.matchMakingEndTime=currentTime + matchMeta.matchMakeWaitTime * 1000;
     return {
         state: {
-            presences: {},
-            score: {},
-            match:mmd
+            matchMeta:matchMeta,
+            players:{}
         },
         tickRate: 1, // 1 tick per second = 1 MatchLoop func invocations per second
         label: dune_gameName
@@ -52,9 +56,11 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
     [key: string]: any;
 }): { state: nkruntime.MatchState; accept: boolean; rejectMessage?: string | undefined; } | null
 {
-    var curentPlayerCount:number=state.presences.length;
-    var mmd:MatchMakingDetails=state.match;
-    if(curentPlayerCount<mmd.maxPlayerCount)
+    logger.warn(`TAG:MatchJoinAttempted 1`);
+    let matchMeta:MatchMateState=state.matchMeta;
+    logger.warn(`TAG:MatchJoinAttempted state: ${state.toString()}`);
+    logger.warn(`TAG:MatchJoinAttempted metadata:${metadata.toString()}`);
+    if(matchMeta.currentPlayerCount<matchMeta.maxPlayerCount)
     {
         return {
             state,
@@ -65,7 +71,7 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
     {
         return {
             state,
-            accept: true,
+            accept: false,
             rejectMessage:'room is full'
         };
     }
@@ -75,33 +81,21 @@ const Dune_MatchJoin: nkruntime.MatchJoinFunction = function (ctx: nkruntime.Con
     state: nkruntime.MatchState
 } | null
 {
-    presences.forEach(function (p) {
-        state.presences[p.userId] = p;
-    });
-    let mmr = dune_waitingMap.GetMMRByMatchId(ctx.matchId);
-    if (mmr != undefined)
-    {
-        mmr.data.currentPlayerCount += 1;
+    let matchMeta:MatchMateState=state.matchMeta;
+    matchMeta.currentPlayerCount+=1;
+    logger.warn(`TAG:MatchJoin ${matchMeta}`);
+    logger.warn(`TAG:MatchJoin ${state.toString()}`);
+    return {
+        state
     }
-    else
-    {
-        logger.error('Tag::serverBase MatchJoin mmr is null');
-    }
-    return {state};
 }
 
 const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, presences: nkruntime.Presence[]): {
     state: nkruntime.MatchState
 } | null
 {
-    let mmr = dune_waitingMap.GetMMRByMatchId(ctx.matchId);
-    if (mmr != null)
-    {
-        mmr.data.currentPlayerCount -= 1;
-    } else
-    {
-        logger.error('Tag::serverBase MatchJoin mmr is null');
-    }
+    let matchMeta:MatchMateState=state.matchMeta;
+    matchMeta.currentPlayerCount-=1;
     return {state};
 }
 
@@ -109,9 +103,58 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
     state: nkruntime.MatchState;
 } | null
 {
-    logger.warn(`${dunne_Tag} message length ${messages.length}`);
-    return {
-        state
+    let matchMeta:MatchMateState=state.matchMeta;
+    let currentTime=Date.now();
+    if(matchMeta.matchStated == false)
+    {
+        if(currentTime > matchMeta.matchMakingEndTime)
+        {
+            //Match make waiting time is over
+            if (matchMeta.currentPlayerCount >= matchMeta.minPlayerCount)
+            {
+                // has found minimum required player so starting the match
+                matchMeta.matchStated = true;
+                matchMeta.gamePlayStartTime = currentTime;
+                matchMeta.matchMakingEndTime = currentTime+ matchMeta.gamePlayTime * 1000;
+                logger.warn("TAG::Match Started min player found");
+                return {
+                    state
+                }
+            }
+            else
+            {
+                //TODO write dispatcher message here
+                logger.warn("TAG::Match not found force stop");
+                return null;
+            }
+        }
+        else
+        {
+            //Waiting for match making
+            logger.warn(`TAG::Match waiting........${currentTime.toString()}>${matchMeta.matchMakingEndTime.toString()} || ${currentTime>matchMeta.matchMakingEndTime}`);
+            return {
+                state
+            }
+        }
+
+    }
+    else
+    {
+        if(currentTime > matchMeta.gamePlayEndTime)
+        {
+            //Game over due to time out
+            logger.warn("TAG::Match over due to time out");
+            //TODO write dispatcher message here and conclude game
+            return null;
+        }
+        else
+        {
+            //TODO Write Game logic here
+            logger.warn("TAG::Match GameLogic");
+            return {
+                state
+            }
+        }
     }
 }
 

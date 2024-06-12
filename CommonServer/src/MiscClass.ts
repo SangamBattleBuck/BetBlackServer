@@ -1,6 +1,102 @@
 
     const emptyResponse = '{responseCode:501,\nmessage:\"emptyResponse or NotImplemented or improper json received \"}';
-    const const_Str_Success='Success'
+    const const_Str_Success='Success';
+
+    //<editor-fold desc="gameState Data class">
+
+    class PlayerDetailState
+    {
+        name: string;
+        avatarId: string;
+        deviceId: string;
+        score: number;
+        constructor(name: string, avatarId: string, score:number, deviceId:string)
+        {
+            this.name = name;
+            this.avatarId = avatarId;
+            this.score=score;
+            this.deviceId=deviceId;
+        }
+        toString(): string
+        {
+            return `{playerName:${this.name},avatarId:${this.avatarId}, score:${this.score}`;
+        }
+    }
+
+    class MatchMateState
+    {
+        roomId: string ;
+        minPlayerCount: number;
+        maxPlayerCount: number;
+        currentPlayerCount:number;
+        matchMakeWaitTime: number;
+        matchStated=false;
+        gamePlayTime: number
+        matchMakingStartTime: number;
+        matchMakingEndTime:number;
+        gamePlayStartTime: number;
+        gamePlayEndTime:number;
+
+        constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, currentPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number, matchStated: boolean=false)
+        {
+            this.roomId = roomId;
+            this.minPlayerCount = minPlayerCount;
+            this.maxPlayerCount = maxPlayerCount;
+            this.currentPlayerCount = currentPlayerCount;
+            this.matchMakeWaitTime = matchMakeWaitTime;
+            this.matchStated = matchStated;
+            this.gamePlayTime = gamePlayTime;
+            this.matchMakingStartTime=0;
+            this.gamePlayStartTime=0;
+            this.matchMakingEndTime=0;
+            this.gamePlayEndTime=0;
+        }
+
+        toString(): string
+        {
+            return `{roomId:${this.roomId},minPlayerCount:${this.minPlayerCount},
+            maxPlayerCount:${this.maxPlayerCount},currentPlayerCount:${this.currentPlayerCount}, 
+            matchMakeWaitTime:${this.matchMakeWaitTime},matchStated:${this.matchStated},
+            gamePlayTime${this.gamePlayTime}`;
+        }
+
+
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="receiving Data class">
+
+    class MatchMakingDetailsReceived
+    {
+        roomId: string ;
+        minPlayerCount: number;
+        maxPlayerCount: number;
+        matchMakeWaitTime: number;
+        gamePlayTime: number
+
+        constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number)
+        {
+            this.roomId = roomId;
+            this.minPlayerCount = minPlayerCount;
+            this.maxPlayerCount = maxPlayerCount;
+            this.matchMakeWaitTime = matchMakeWaitTime;
+            this.gamePlayTime = gamePlayTime;
+        }
+
+        // Method to display student information
+        toString(): string
+        {
+            return `{roomId: ${this.roomId},minPlayerCount: ${this.minPlayerCount},
+            maxPlayerCount: ${this.maxPlayerCount},matchMakeWaitTime: ${this.matchMakeWaitTime}}
+            ,gamePlayTime:${this.gamePlayTime}`;
+        }
+
+
+    }
+    //</editor-fold>
+
+    //<editor-fold desc="Response Data class">
+
     abstract class ApiResponse<T>
     {
         responseCode: ResponseCode;
@@ -15,64 +111,14 @@
         }
     }
 
-    class PlayerDetails
-    {
-        playerName: string = "";
-        playerAvatarId: string = "";
-    }
-
-    class ScoreData
-    {
-        public playerId: string;
-        public score: number;
-
-        constructor(playerId: string, score: number)
-        {
-            this.playerId = playerId;
-            this.score = score;
-        }
-    }
-
-    class MatchMakingDetails
-    {
-        roomId: string = "not found";
-        minPlayerCount: number = 1;
-        maxPlayerCount: number = 1;
-        autoDestroyRoom: number = 3600;
-
-        constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, autoDestroyRoom: number)
-        {
-            this.roomId = roomId;
-            this.minPlayerCount = minPlayerCount;
-            this.maxPlayerCount = maxPlayerCount;
-            this.autoDestroyRoom = autoDestroyRoom;
-        }
-
-        // Method to display student information
-        toString(): string
-        {
-            return `roomId: ${this.roomId}, maxPlayerCount: ${this.maxPlayerCount}, minPlayerCount: ${this.minPlayerCount}, autoDestroyRoom: ${this.autoDestroyRoom}`;
-        }
-
-
-    }
-
     class MatchMakingResponseData
     {
         roomId: string;
         matchId: string;
-        minPlayerCount: number = 1;
-        maxPlayerCount: number = 1;
-        currentPlayerCount: number = 0;
-        playerDetails: PlayerDetails[] | null;
-
-        constructor(roomId: string, matchId: string, minPlayerCount: number, maxPlayerCount: number, playerDetails: PlayerDetails[] | null)
+        constructor(roomId: string, matchId: string)
         {
             this.roomId = roomId;
             this.matchId = matchId;
-            this.maxPlayerCount = maxPlayerCount;
-            this.minPlayerCount = minPlayerCount;
-            this.playerDetails = playerDetails;
         }
     }
 
@@ -80,6 +126,9 @@
     {
 
     }
+    //</editor-fold>
+
+    //<editor-fold desc="supporting Functional Data class">
 
     class WaitingMatches<T>
     {
@@ -128,3 +177,4 @@
             return this.waitingMatchesByMatchId.delete(matchId);
         }
     }
+    //</editor-fold>
