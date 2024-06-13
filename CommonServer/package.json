@@ -4,6 +4,7 @@
   "description": "The server code for Pirate Panic game.",
   "main": "build/index.js",
   "scripts": {
+    "start": "docker-compose up --build",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
