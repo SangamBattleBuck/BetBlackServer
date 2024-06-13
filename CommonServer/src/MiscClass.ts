@@ -4,63 +4,50 @@ const const_Str_Success='Success';
 const const_PlayerReadyWaitTime=100;
 
 //<editor-fold desc="gameState Data class">
-class NakamaPlayerData
-{
-    userId: string;
-    sessionId: string;
-    username: string;
-
-    constructor(userId: string, sessionId: string, username: string)
-    {
-        this.userId = userId;
-        this.sessionId = sessionId;
-        this.username = username;
-    }
-}
 
 class PlayerStateData
 {
-    nakamaPresence :NakamaPlayerData;
+    userId:string;
     playerDetails: PlayerDetailReceived;
     score: number;
     playerReady:boolean;
-    public constructor(playerDetails: PlayerDetailReceived,presence :NakamaPlayerData)
+    public constructor(playerDetails: PlayerDetailReceived,userId :string)
     {
         this.playerDetails = playerDetails;
-        this.nakamaPresence=presence;
         this.score = 0;
         this.playerReady=false;
+        this.userId=userId;
     }
 }
 
-class PlayersStateGame
-{
-    players: Map<string,PlayerStateData>;
-
-    constructor()
-    {
-        this.players = new Map<string,PlayerStateData>();
-    }
-
-    AddPlayer(playerData: PlayerStateData):void
-    {
-        this.players.set(playerData.nakamaPresence.userId,playerData);
-    }
-
-    Remove(playerData: PlayerStateData):boolean
-    {
-        return this.players.delete(playerData.nakamaPresence.userId);
-    }
-
-    IsAllPlayerReady() :boolean
-    {
-        let allReady=true;
-        this.players.forEach((v)=>{
-            allReady=allReady&& v.playerReady;
-        })
-        return allReady;
-    }
-}
+// class PlayersStateGame
+// {
+//     players: Map<string,PlayerStateData>;
+//
+//     constructor()
+//     {
+//         this.players = new Map<string,PlayerStateData>();
+//     }
+//
+//     AddPlayer(playerData: PlayerStateData):void
+//     {
+//         this.players.set(playerData.nakamaPresence.userId,playerData);
+//     }
+//
+//     Remove(playerData: PlayerStateData):boolean
+//     {
+//         return this.players.delete(playerData.nakamaPresence.userId);
+//     }
+//
+//     IsAllPlayerReady() :boolean
+//     {
+//         let allReady=true;
+//         this.players.forEach((v)=>{
+//             allReady=allReady&& v.playerReady;
+//         })
+//         return allReady;
+//     }
+// }
 
 class MatchMakeState
 {

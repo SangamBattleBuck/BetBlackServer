@@ -37,13 +37,13 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
     let matchDetail:MatchMakingDetailsReceived=params as MatchMakingDetailsReceived;
     logger.warn(`TAG:MatchInit 2`);
     let matchMeta= new MatchMakeState(matchDetail.roomId,matchDetail.minPlayerCount,matchDetail.maxPlayerCount,0,matchDetail.matchMakeWaitTime,matchDetail.gamePlayTime);
-    let player=new PlayersStateGame();
+    // let player=new PlayersStateGame();
     matchMeta.matchState=MatchStateCode.WaitingForMatchMaking;
     logger.warn(`TAG:MatchInit 3 matchMakingEndTime ${matchMeta.matchMakingEndTime}`);
     return {
         state: {
             matchMeta:matchMeta,
-            players: player,
+            players: {},
         },
         tickRate: 1, // 1 tick per second = 1 MatchLoop func invocations per second
         label: dune_gameName
@@ -58,7 +58,7 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
      let matchMeta: MatchMakeState = state.matchMeta;
      logger.warn(`TAG:MatchJoinAttempted state: ${JSON.stringify(state.toString)}`);
      logger.warn(`TAG:MatchJoinAttempted metadata:${JSON.stringify(metadata)}`);
-     const playerState: PlayersStateGame = state.players;
+
 
      if (matchMeta.matchState == MatchStateCode.StartCountDown || matchMeta.matchState == MatchStateCode.MatchStarted)
      {
@@ -72,10 +72,9 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
              logger.warn(`TAG:MatchJoinAttempted 2 ((((((Starting))))))...`);
              let playerDetails: PlayerDetailReceived = JSON.parse(metadata.playerDetails);
              logger.warn(`TAG:MatchJoinAttempted 2.2 ((((((Starting))))))...`);
-             let nakamaPlayerData=new NakamaPlayerData(presence.userId,presence.sessionId,presence.username);
-             let joinPlayerState = new PlayerStateData(playerDetails, nakamaPlayerData);
-             logger.warn(`TAG:MatchJoinAttempted 2.3 ((((((Starting)))))) joinPlayerState: ||${JSON.stringify(joinPlayerState)}||`);
-             playerState.AddPlayer(joinPlayerState);
+             let joinedPlayerState = new PlayerStateData(playerDetails,presence.userId);
+             logger.warn(`TAG:MatchJoinAttempted 2.3 ((((((Starting)))))) joinPlayerState: ||${JSON.stringify(joinedPlayerState)}||`);
+             state.players[presence.userId]=joinedPlayerState;
              logger.warn(`TAG:MatchJoinAttempted 2.4 ((((((parse successfully))))))...`);
          } catch (ex)
          {
@@ -131,7 +130,6 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
 {
     let matchMeta:MatchMakeState=state.matchMeta;
     let currentTime=Date.now();
-    let playersState:PlayersStateGame=state.players;
     let currentMatchState=matchMeta._matchState;
     logger.warn(`TAG::RRRR tick${tick} ${JSON.stringify(matchMeta)}|| matchMeta.matchState :${currentMatchState} RoomID${matchMeta.roomId}`);
     switch (currentMatchState)
@@ -179,15 +177,21 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                 {
                     if(msg.opCode == PacketCode.PlayerReady)
                     {
-                        let uId=msg.sender.userId;
-                        let t=playersState.players.get(uId);
-                        if(t != undefined)
-                        {
-                            t.playerReady = true;
-                        }
+                        let t:PlayerStateData=state.players[msg.sender.userId]
+                        t.playerReady = true;
                     }
                 }
-                if(playersState.IsAllPlayerReady())
+                //Checking all Player ready ?
+                let allPlayerReady =true;
+                for (const p in state.players) {
+                    if(state.players[p].playerReady == false)
+                    {
+                        allPlayerReady=false;
+                        break;
+                    }
+                     // logger.warn(`UserId: ${p}, Score: ${state.players[p].playerReady}`);
+                }
+                if(allPlayerReady)
                 {
                     logger.warn(`TAG::Match ####All playerReady received........####`);
                     matchMeta.matchState=MatchStateCode.StartCountDown;
