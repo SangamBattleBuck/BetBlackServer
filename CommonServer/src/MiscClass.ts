@@ -1,62 +1,131 @@
+import Presence = nkruntime.Presence;
 
-    const emptyResponse = '{responseCode:501,\nmessage:\"emptyResponse or NotImplemented or improper json received \"}';
+const emptyResponse = '{responseCode:501,\nmessage:\"emptyResponse or NotImplemented or improper json received \"}';
+    const playerReadyResponse = '{responseCode:200,\nmessage:\"Server is ready waiting for you to send player ready (opcode =2)\"}';
     const const_Str_Success='Success';
+    const const_PlayerReadyWaitTime=100;
 
     //<editor-fold desc="gameState Data class">
 
-    class PlayerDetailState
+
+    class PlayerStateData
     {
-        name: string;
-        avatarId: string;
-        deviceId: string;
+        presence :Presence;
+        playerDetails: PlayerDetailReceived;
         score: number;
-        constructor(name: string, avatarId: string, score:number, deviceId:string)
+        playerReady:boolean;
+        public constructor(playerDetails: PlayerDetailReceived,presence :Presence)
         {
-            this.name = name;
-            this.avatarId = avatarId;
-            this.score=score;
-            this.deviceId=deviceId;
-        }
-        toString(): string
-        {
-            return `{playerName:${this.name},avatarId:${this.avatarId}, score:${this.score}`;
+            this.playerDetails = playerDetails;
+            this.presence=presence;
+            this.score = 0;
+            this.playerReady=false;
         }
     }
 
-    class MatchMateState
+    class PlayersState
+    {
+        player: Map<string,PlayerStateData>;
+
+        public constructor()
+        {
+            this.player = new Map<string,PlayerStateData>();
+        }
+
+        public Add(playerData: PlayerStateData):void
+        {
+            this.player.set(playerData.presence.userId,playerData);
+        }
+
+        public Remove(playerData: PlayerStateData):boolean
+        {
+            return this.player.delete(playerData.presence.userId);
+        }
+
+        public IsAllPlayerReady() :boolean
+        {
+            let allReady=true;
+            this.player.forEach((v)=>{
+                allReady=allReady&& v.playerReady;
+            })
+            return allReady;
+        }
+    }
+
+    class MatchMakeState
     {
         roomId: string ;
         minPlayerCount: number;
         maxPlayerCount: number;
         currentPlayerCount:number;
         matchMakeWaitTime: number;
-        matchStated=false;
+        private _matchState:MatchStateCode;
         gamePlayTime: number
         matchMakingStartTime: number;
         matchMakingEndTime:number;
         gamePlayStartTime: number;
         gamePlayEndTime:number;
+        waitingPlayReadyStartTime: number;
+        waitingPlayReadyEndTime:number;
+        countDown:number;
+        lastCountTime:number;
 
-        constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, currentPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number, matchStated: boolean=false)
+        constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, currentPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number, matchStated=MatchStateCode.MatchCreated)
         {
             this.roomId = roomId;
             this.minPlayerCount = minPlayerCount;
             this.maxPlayerCount = maxPlayerCount;
             this.currentPlayerCount = currentPlayerCount;
             this.matchMakeWaitTime = matchMakeWaitTime;
-            this.matchStated = matchStated;
+            this._matchState = matchStated;
             this.gamePlayTime = gamePlayTime;
             this.matchMakingStartTime=0;
             this.gamePlayStartTime=0;
             this.matchMakingEndTime=0;
             this.gamePlayEndTime=0;
+            this.waitingPlayReadyStartTime=0;
+            this.waitingPlayReadyEndTime=0;
+            this.countDown=5;
+            this.lastCountTime=0;
+        }
+
+        get matchState() {
+            return this._matchState;
+        }
+        set matchState(value: MatchStateCode)
+        {
+            if(value != this._matchState)
+            {
+                let currentTime = Date.now();
+                switch (value)
+                {
+                    case MatchStateCode.MatchCreated:
+                        break;
+                    case MatchStateCode.MatchInitialized:
+                        this.matchMakingStartTime = currentTime;
+                        this.matchMakingEndTime = currentTime + this.matchMakeWaitTime * 1000;
+                        break;
+                    case MatchStateCode.WaitingForMatchMaking:
+                        break;
+                    case MatchStateCode.WaitingForPlayerReady:
+                        this.waitingPlayReadyStartTime = currentTime;
+                        this.waitingPlayReadyEndTime = currentTime + const_PlayerReadyWaitTime * 1000;
+                        break;
+                    case MatchStateCode.MatchStarted:
+                        this.gamePlayStartTime = currentTime;
+                        this.gamePlayEndTime = currentTime + this.gamePlayTime * 1000;
+                        break;
+
+                }
+                this._matchState = value;
+            }
         }
 
         toString(): string
         {
             return `{roomId:${this.roomId},minPlayerCount:${this.minPlayerCount},
             maxPlayerCount:${this.maxPlayerCount},currentPlayerCount:${this.currentPlayerCount}, 
-            matchMakeWaitTime:${this.matchMakeWaitTime},matchStated:${this.matchStated},
+            matchMakeWaitTime:${this.matchMakeWaitTime},matchStated:${this.matchState},
             gamePlayTime${this.gamePlayTime}`;
         }
 
@@ -92,6 +161,22 @@
         }
 
 
+    }
+
+    class PlayerDetailReceived
+    {
+        playerName: string;
+        playerAvatarId: string;
+        playerGameId: string;
+        playerDeviceId: string;
+
+        constructor(playerName: string, playerAvatarId: string, playerGameId: string, playerDeviceId: string)
+        {
+            this.playerName = playerName;
+            this.playerAvatarId = playerAvatarId;
+            this.playerGameId = playerGameId;
+            this.playerDeviceId = playerDeviceId;
+        }
     }
     //</editor-fold>
 

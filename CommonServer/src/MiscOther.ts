@@ -70,3 +70,25 @@ enum ResponseCode {
     NotExtended = 510,
     NetworkAuthenticationRequired = 511
 }
+
+enum MatchStateCode
+{
+    MatchCreated,
+    MatchInitialized,
+    WaitingForMatchMaking,
+    WaitingForPlayerReady,
+    StartCountDown,
+    MatchStarted
+}
+
+enum PacketCode
+{
+    ServerReady=1,
+    PlayerReady,
+    CountDown,
+    StartGame,
+    GameOverTime ,
+    GameFailedMinPlayerReq,
+    GameFailedMinPlayerReqPlayerReady,
+    GameOverPlayerLeft
+}
