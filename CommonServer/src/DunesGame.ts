@@ -85,10 +85,13 @@ const Dune_MatchJoin: nkruntime.MatchJoinFunction = function (ctx: nkruntime.Con
     matchMeta.currentPlayerCount += 1;
     if (matchMeta.currentPlayerCount == matchMeta.maxPlayerCount) {
         // Max player found so starting the match 
-        matchMeta.matchStated == true;
+        matchMeta.matchStated = true;
+        let currentTime = Date.now();
+        matchMeta.gamePlayStartTime = currentTime;
+        matchMeta.gamePlayEndTime = currentTime + matchMeta.gamePlayTime * 1000;
     }
-    logger.warn(`TAG:MatchJoin ${matchMeta}`);
-    logger.warn(`TAG:MatchJoin ${state.toString()}`);
+    logger.warn(`TAG:MatchJoin ${JSON.stringify(matchMeta)}`);
+    logger.warn(`TAG:MatchJoin ${JSON.stringify(state)}`);
 
     return {
         state
@@ -114,6 +117,7 @@ const Dune_MatchLoop: nkruntime.MatchLoopFunction = function (ctx: nkruntime.Con
 } | null {
     let matchMeta: MatchMateState = state.matchMeta;
     let currentTime = Date.now();
+
     if (matchMeta.matchStated == false) {
         if (currentTime > matchMeta.matchMakingEndTime) {
             //Match make waiting time is over
@@ -152,10 +156,33 @@ const Dune_MatchLoop: nkruntime.MatchLoopFunction = function (ctx: nkruntime.Con
         else {
             //TODO Write Game logic here
             logger.warn("TAG::Match GameLogic");
+            logger.warn("TAG::Match Messages ", messages.length);
+            logger.warn("TAG::Match Messages ", JSON.stringify(messages));
             //calculate score and update state
             messages.forEach(function (message) {
+                logger.warn("TAG::Match Messages Loop ", message.opCode);
+
                 logger.info('Received %v from %v', message.data, message.sender.userId);
-                //  dispatcher.broadcastMessage(1, message.data, [message.sender], null);
+                //   let messageType = message.opCode;
+                let messagepayload = new Uint8Array(message.data);
+
+                // let player = state.players[message.sender.userId];
+
+                // let playerHeight = 0;
+                // let playerLandingAngle = 0;
+                // let playerVelocity = 0;
+
+                messagepayload.forEach(element => {
+                    logger.warn(`TAG::Match Messages Loop ${element}`);
+                });
+
+
+
+                // if (messageType == 1)
+                //     player.score += CalculateHeightScore(playerHeight, player.lastLanding);
+                // else if (messageType == 2)
+                //     player.lastLanding = CalculateLandingScore(playerLandingAngle, playerVelocity);
+                // dispatcher.broadcastMessage(1, player, [message.sender], null);
             });
             return {
                 state

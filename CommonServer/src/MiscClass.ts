@@ -9,10 +9,12 @@ class PlayerDetailState {
     avatarId: string;
     deviceId: string;
     score: number;
+    lastLandingType: LandingType;
     constructor(name: string, avatarId: string, score: number, deviceId: string) {
         this.name = name;
         this.avatarId = avatarId;
         this.score = score;
+        this.lastLandingType = LandingType.Normal;
         this.deviceId = deviceId;
     }
     toString(): string {
