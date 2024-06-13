@@ -1,265 +1,273 @@
-import Presence = nkruntime.Presence;
-
 const emptyResponse = '{responseCode:501,\nmessage:\"emptyResponse or NotImplemented or improper json received \"}';
-    const playerReadyResponse = '{responseCode:200,\nmessage:\"Server is ready waiting for you to send player ready (opcode =2)\"}';
-    const const_Str_Success='Success';
-    const const_PlayerReadyWaitTime=100;
+const playerReadyResponse = '{responseCode:200,\nmessage:\"Server is ready waiting for you to send player ready (opcode =2)\"}';
+const const_Str_Success='Success';
+const const_PlayerReadyWaitTime=100;
 
-    //<editor-fold desc="gameState Data class">
+//<editor-fold desc="gameState Data class">
+class NakamaPlayerData
+{
+    userId: string;
+    sessionId: string;
+    username: string;
 
-
-    class PlayerStateData
+    constructor(userId: string, sessionId: string, username: string)
     {
-        presence :Presence;
-        playerDetails: PlayerDetailReceived;
-        score: number;
-        playerReady:boolean;
-        public constructor(playerDetails: PlayerDetailReceived,presence :Presence)
-        {
-            this.playerDetails = playerDetails;
-            this.presence=presence;
-            this.score = 0;
-            this.playerReady=false;
-        }
+        this.userId = userId;
+        this.sessionId = sessionId;
+        this.username = username;
+    }
+}
+
+class PlayerStateData
+{
+    nakamaPresence :NakamaPlayerData;
+    playerDetails: PlayerDetailReceived;
+    score: number;
+    playerReady:boolean;
+    public constructor(playerDetails: PlayerDetailReceived,presence :NakamaPlayerData)
+    {
+        this.playerDetails = playerDetails;
+        this.nakamaPresence=presence;
+        this.score = 0;
+        this.playerReady=false;
+    }
+}
+
+class PlayersStateGame
+{
+    players: Map<string,PlayerStateData>;
+
+    constructor()
+    {
+        this.players = new Map<string,PlayerStateData>();
     }
 
-    class PlayersState
+    AddPlayer(playerData: PlayerStateData):void
     {
-        player: Map<string,PlayerStateData>;
-
-        public constructor()
-        {
-            this.player = new Map<string,PlayerStateData>();
-        }
-
-        public Add(playerData: PlayerStateData):void
-        {
-            this.player.set(playerData.presence.userId,playerData);
-        }
-
-        public Remove(playerData: PlayerStateData):boolean
-        {
-            return this.player.delete(playerData.presence.userId);
-        }
-
-        public IsAllPlayerReady() :boolean
-        {
-            let allReady=true;
-            this.player.forEach((v)=>{
-                allReady=allReady&& v.playerReady;
-            })
-            return allReady;
-        }
+        this.players.set(playerData.nakamaPresence.userId,playerData);
     }
 
-    class MatchMakeState
+    Remove(playerData: PlayerStateData):boolean
     {
-        roomId: string ;
-        minPlayerCount: number;
-        maxPlayerCount: number;
-        currentPlayerCount:number;
-        matchMakeWaitTime: number;
-        private _matchState:MatchStateCode;
-        gamePlayTime: number
-        matchMakingStartTime: number;
-        matchMakingEndTime:number;
-        gamePlayStartTime: number;
-        gamePlayEndTime:number;
-        waitingPlayReadyStartTime: number;
-        waitingPlayReadyEndTime:number;
-        countDown:number;
-        lastCountTime:number;
+        return this.players.delete(playerData.nakamaPresence.userId);
+    }
 
-        constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, currentPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number, matchStated=MatchStateCode.MatchCreated)
-        {
-            this.roomId = roomId;
-            this.minPlayerCount = minPlayerCount;
-            this.maxPlayerCount = maxPlayerCount;
-            this.currentPlayerCount = currentPlayerCount;
-            this.matchMakeWaitTime = matchMakeWaitTime;
-            this._matchState = matchStated;
-            this.gamePlayTime = gamePlayTime;
-            this.matchMakingStartTime=0;
-            this.gamePlayStartTime=0;
-            this.matchMakingEndTime=0;
-            this.gamePlayEndTime=0;
-            this.waitingPlayReadyStartTime=0;
-            this.waitingPlayReadyEndTime=0;
-            this.countDown=5;
-            this.lastCountTime=0;
-        }
+    IsAllPlayerReady() :boolean
+    {
+        let allReady=true;
+        this.players.forEach((v)=>{
+            allReady=allReady&& v.playerReady;
+        })
+        return allReady;
+    }
+}
 
-        get matchState() {
-            return this._matchState;
-        }
-        set matchState(value: MatchStateCode)
+class MatchMakeState
+{
+    roomId: string;
+    minPlayerCount: number;
+    maxPlayerCount: number;
+    currentPlayerCount: number;
+    matchMakeWaitTime: number;
+    _matchState: MatchStateCode;
+    gamePlayTime: number
+    matchMakingStartTime: number;
+    matchMakingEndTime: number;
+    gamePlayStartTime: number;
+    gamePlayEndTime: number;
+    waitingPlayReadyStartTime: number;
+    waitingPlayReadyEndTime: number;
+    countDown: number;
+    lastCountTime: number;
+
+    constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, currentPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number, matchStated = MatchStateCode.MatchCreated)
+    {
+        this.roomId = roomId;
+        this.minPlayerCount = minPlayerCount;
+        this.maxPlayerCount = maxPlayerCount;
+        this.currentPlayerCount = currentPlayerCount;
+        this.matchMakeWaitTime = matchMakeWaitTime;
+        this._matchState = matchStated;
+        this.gamePlayTime = gamePlayTime;
+        this.matchMakingStartTime = 0;
+        this.gamePlayStartTime = 0;
+        this.matchMakingEndTime = 0;
+        this.gamePlayEndTime = 0;
+        this.waitingPlayReadyStartTime = 0;
+        this.waitingPlayReadyEndTime = 0;
+        this.countDown = 5;
+        this.lastCountTime = 0;
+    }
+
+    get matchState(): MatchStateCode
+    {
+        return this._matchState;
+    }
+
+    set matchState(value: MatchStateCode)
+    {
+        if (value != this._matchState)
         {
-            if(value != this._matchState)
+            let currentTime = Date.now();
+            switch (value)
             {
-                let currentTime = Date.now();
-                switch (value)
-                {
-                    case MatchStateCode.MatchCreated:
-                        break;
-                    case MatchStateCode.MatchInitialized:
-                        this.matchMakingStartTime = currentTime;
-                        this.matchMakingEndTime = currentTime + this.matchMakeWaitTime * 1000;
-                        break;
-                    case MatchStateCode.WaitingForMatchMaking:
-                        break;
-                    case MatchStateCode.WaitingForPlayerReady:
-                        this.waitingPlayReadyStartTime = currentTime;
-                        this.waitingPlayReadyEndTime = currentTime + const_PlayerReadyWaitTime * 1000;
-                        break;
-                    case MatchStateCode.MatchStarted:
-                        this.gamePlayStartTime = currentTime;
-                        this.gamePlayEndTime = currentTime + this.gamePlayTime * 1000;
-                        break;
+                case MatchStateCode.MatchCreated:
+                    break;
+                case MatchStateCode.WaitingForMatchMaking:
+                    this.matchMakingStartTime = currentTime;
+                    this.matchMakingEndTime = currentTime + this.matchMakeWaitTime * 1000;
+                    break;
+                case MatchStateCode.WaitingForPlayerReady:
+                    this.waitingPlayReadyStartTime = currentTime;
+                    this.waitingPlayReadyEndTime = currentTime + const_PlayerReadyWaitTime * 1000;
+                    break;
+                case MatchStateCode.MatchStarted:
+                    this.gamePlayStartTime = currentTime;
+                    this.gamePlayEndTime = currentTime + this.gamePlayTime * 1000;
+                    break;
 
-                }
-                this._matchState = value;
             }
+            this._matchState = value;
         }
-
-        toString(): string
-        {
-            return `{roomId:${this.roomId},minPlayerCount:${this.minPlayerCount},
-            maxPlayerCount:${this.maxPlayerCount},currentPlayerCount:${this.currentPlayerCount}, 
-            matchMakeWaitTime:${this.matchMakeWaitTime},matchStated:${this.matchState},
-            gamePlayTime${this.gamePlayTime}`;
-        }
-
-
     }
-    //</editor-fold>
 
-    //<editor-fold desc="receiving Data class">
-
-    class MatchMakingDetailsReceived
+    toString(): string
     {
-        roomId: string ;
-        minPlayerCount: number;
-        maxPlayerCount: number;
-        matchMakeWaitTime: number;
-        gamePlayTime: number
-
-        constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number)
-        {
-            this.roomId = roomId;
-            this.minPlayerCount = minPlayerCount;
-            this.maxPlayerCount = maxPlayerCount;
-            this.matchMakeWaitTime = matchMakeWaitTime;
-            this.gamePlayTime = gamePlayTime;
-        }
-
-        // Method to display student information
-        toString(): string
-        {
-            return `{roomId: ${this.roomId},minPlayerCount: ${this.minPlayerCount},
-            maxPlayerCount: ${this.maxPlayerCount},matchMakeWaitTime: ${this.matchMakeWaitTime}}
-            ,gamePlayTime:${this.gamePlayTime}`;
-        }
-
-
+        return `{roomId:${this.roomId},minPlayerCount:${this.minPlayerCount},
+        maxPlayerCount:${this.maxPlayerCount},currentPlayerCount:${this.currentPlayerCount}, 
+        matchMakeWaitTime:${this.matchMakeWaitTime},matchStated:${this.matchState},
+        gamePlayTime${this.gamePlayTime}`;
     }
+}
+//</editor-fold>
 
-    class PlayerDetailReceived
+//<editor-fold desc="receiving Data class">
+
+class MatchMakingDetailsReceived
+{
+    roomId: string ;
+    minPlayerCount: number;
+    maxPlayerCount: number;
+    matchMakeWaitTime: number;
+    gamePlayTime: number
+
+    constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number)
     {
-        playerName: string;
-        playerAvatarId: string;
-        playerGameId: string;
-        playerDeviceId: string;
-
-        constructor(playerName: string, playerAvatarId: string, playerGameId: string, playerDeviceId: string)
-        {
-            this.playerName = playerName;
-            this.playerAvatarId = playerAvatarId;
-            this.playerGameId = playerGameId;
-            this.playerDeviceId = playerDeviceId;
-        }
+        this.roomId = roomId;
+        this.minPlayerCount = minPlayerCount;
+        this.maxPlayerCount = maxPlayerCount;
+        this.matchMakeWaitTime = matchMakeWaitTime;
+        this.gamePlayTime = gamePlayTime;
     }
-    //</editor-fold>
 
-    //<editor-fold desc="Response Data class">
-
-    abstract class ApiResponse<T>
+    // Method to display student information
+    toString(): string
     {
-        responseCode: ResponseCode;
-        message: string;
-        data: T;
-
-        constructor(data: T,responseCode: ResponseCode = ResponseCode.OK, message: string = const_Str_Success)
-        {
-            this.responseCode = responseCode;
-            this.message = message;
-            this.data = data;
-        }
+        return `{roomId: ${this.roomId},minPlayerCount: ${this.minPlayerCount},
+        maxPlayerCount: ${this.maxPlayerCount},matchMakeWaitTime: ${this.matchMakeWaitTime}}
+        ,gamePlayTime:${this.gamePlayTime}`;
     }
 
-    class MatchMakingResponseData
+
+}
+
+class PlayerDetailReceived
+{
+    playerName: string;
+    playerAvatarId: string;
+    playerGameId: string;
+    playerDeviceId: string;
+
+    constructor(playerName: string, playerAvatarId: string, playerGameId: string, playerDeviceId: string)
     {
-        roomId: string;
-        matchId: string;
-        constructor(roomId: string, matchId: string)
-        {
-            this.roomId = roomId;
-            this.matchId = matchId;
-        }
+        this.playerName = playerName;
+        this.playerAvatarId = playerAvatarId;
+        this.playerGameId = playerGameId;
+        this.playerDeviceId = playerDeviceId;
     }
+}
+//</editor-fold>
 
-    class MatchMakingResponse extends ApiResponse<MatchMakingResponseData>
+//<editor-fold desc="Response Data class">
+
+abstract class ApiResponse<T>
+{
+    responseCode: ResponseCode;
+    message: string;
+    data: T;
+
+    constructor(data: T,responseCode: ResponseCode = ResponseCode.OK, message: string = const_Str_Success)
     {
-
+        this.responseCode = responseCode;
+        this.message = message;
+        this.data = data;
     }
-    //</editor-fold>
+}
 
-    //<editor-fold desc="supporting Functional Data class">
-
-    class WaitingMatches<T>
+class MatchMakingResponseData
+{
+    roomId: string;
+    matchId: string;
+    constructor(roomId: string, matchId: string)
     {
-        public waitingMatchesByRoomId: Map<string, T>;
-        public waitingMatchesByMatchId: Map<string, T>;
-
-        public constructor()
-        {
-            this.waitingMatchesByRoomId = new Map<string, T>();
-            this.waitingMatchesByMatchId = new Map<string, T>();
-        }
-
-        public Set(roomId: string, matchId: string, mmr: T): void
-        {
-            this.waitingMatchesByRoomId.set(roomId, mmr);
-            this.waitingMatchesByMatchId.set(matchId, mmr);
-        }
-
-        public GetMMRByRoomId(roomId: string): T | undefined
-        {
-            if (this.waitingMatchesByRoomId.has(roomId))
-            {
-                return this.waitingMatchesByRoomId.get(roomId);
-            }
-            return undefined;
-        }
-
-        public GetMMRByMatchId(matchId: string): T | undefined
-        {
-            if (this.waitingMatchesByMatchId.has(matchId))
-            {
-                return this.waitingMatchesByMatchId.get(matchId);
-            }
-            return undefined;
-        }
-
-        public DeletedByRoomId(matchId: string): boolean
-        {
-            this.waitingMatchesByMatchId.delete(matchId)
-            return this.waitingMatchesByRoomId.delete(matchId);
-        }
-
-        public DeletedByMatchId(matchId: string): boolean
-        {
-            this.waitingMatchesByRoomId.delete(matchId)
-            return this.waitingMatchesByMatchId.delete(matchId);
-        }
+        this.roomId = roomId;
+        this.matchId = matchId;
     }
-    //</editor-fold>
+}
+
+class MatchMakingResponse extends ApiResponse<MatchMakingResponseData>
+{
+
+}
+//</editor-fold>
+
+//<editor-fold desc="supporting Functional Data class">
+
+class WaitingMatches<T>
+{
+    public waitingMatchesByRoomId: Map<string, T>;
+    public waitingMatchesByMatchId: Map<string, T>;
+
+    public constructor()
+    {
+        this.waitingMatchesByRoomId = new Map<string, T>();
+        this.waitingMatchesByMatchId = new Map<string, T>();
+    }
+
+    public Set(roomId: string, matchId: string, mmr: T): void
+    {
+        this.waitingMatchesByRoomId.set(roomId, mmr);
+        this.waitingMatchesByMatchId.set(matchId, mmr);
+    }
+
+    public GetMMRByRoomId(roomId: string): T | undefined
+    {
+        if (this.waitingMatchesByRoomId.has(roomId))
+        {
+            return this.waitingMatchesByRoomId.get(roomId);
+        }
+        return undefined;
+    }
+
+    public GetMMRByMatchId(matchId: string): T | undefined
+    {
+        if (this.waitingMatchesByMatchId.has(matchId))
+        {
+            return this.waitingMatchesByMatchId.get(matchId);
+        }
+        return undefined;
+    }
+
+    public DeletedByRoomId(matchId: string): boolean
+    {
+        this.waitingMatchesByMatchId.delete(matchId)
+        return this.waitingMatchesByRoomId.delete(matchId);
+    }
+
+    public DeletedByMatchId(matchId: string): boolean
+    {
+        this.waitingMatchesByRoomId.delete(matchId)
+        return this.waitingMatchesByMatchId.delete(matchId);
+    }
+}
+//</editor-fold>

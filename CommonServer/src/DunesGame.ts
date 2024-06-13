@@ -1,8 +1,6 @@
-
 let dune_waitingMap= new WaitingMatches<MatchMakingResponse>();
 const dune_gameName: string = 'Dunes';
 const dunne_Tag:string='TAG::Dunes';
-
 const Dune_CreateMatch: nkruntime.RpcFunction = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, payload: string): string
 {
     let responseJson = emptyResponse;
@@ -39,8 +37,9 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
     let matchDetail:MatchMakingDetailsReceived=params as MatchMakingDetailsReceived;
     logger.warn(`TAG:MatchInit 2`);
     let matchMeta= new MatchMakeState(matchDetail.roomId,matchDetail.minPlayerCount,matchDetail.maxPlayerCount,0,matchDetail.matchMakeWaitTime,matchDetail.gamePlayTime);
-    let player=new PlayersState();
-    matchMeta.matchState=MatchStateCode.MatchInitialized;
+    let player=new PlayersStateGame();
+    matchMeta.matchState=MatchStateCode.WaitingForMatchMaking;
+    logger.warn(`TAG:MatchInit 3 matchMakingEndTime ${matchMeta.matchMakingEndTime}`);
     return {
         state: {
             matchMeta:matchMeta,
@@ -54,26 +53,35 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
  const Dune_MatchJoinAttempted: nkruntime.MatchJoinAttemptFunction = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, presence: nkruntime.Presence, metadata: {
     [key: string]: any;
 }): { state: nkruntime.MatchState; accept: boolean; rejectMessage?: string | undefined; } | null
-{
-    logger.warn(`TAG:MatchJoinAttempted 1`);
-    let matchMeta:MatchMakeState=state.matchMeta;
-    logger.warn(`TAG:MatchJoinAttempted state: ${JSON.stringify(state.toString)}`);
-    logger.warn(`TAG:MatchJoinAttempted metadata:${JSON.stringify(metadata)}`);
-    let playerState: PlayersState=state.players;
-    //Resume case need to handled
-    if(matchMeta.currentPlayerCount<matchMeta.maxPlayerCount)
-    {
-        try
-        {
-            let playerDetails:PlayerDetailReceived= JSON.parse(metadata.playerDetails);
-            let joinPlayerState:PlayerStateData= new PlayerStateData(playerDetails,presence);
-            playerState.Add(joinPlayerState);
-        }
-        catch (ex)
-        {
-            logger.warn(`TAG:MatchJoinAttempted parse failed `);
-        }
+ {
+     logger.warn(`TAG:MatchJoinAttempted 1`);
+     let matchMeta: MatchMakeState = state.matchMeta;
+     logger.warn(`TAG:MatchJoinAttempted state: ${JSON.stringify(state.toString)}`);
+     logger.warn(`TAG:MatchJoinAttempted metadata:${JSON.stringify(metadata)}`);
+     const playerState: PlayersStateGame = state.players;
 
+     if (matchMeta.matchState == MatchStateCode.StartCountDown || matchMeta.matchState == MatchStateCode.MatchStarted)
+     {
+         //TODO handle Resume case here
+         logger.warn(`TAG:MatchJoinAttempted Resume.... ForceStop`);
+         return null;
+     } else if (matchMeta.currentPlayerCount <= matchMeta.maxPlayerCount)
+     {
+         try
+         {
+             logger.warn(`TAG:MatchJoinAttempted 2 ((((((Starting))))))...`);
+             let playerDetails: PlayerDetailReceived = JSON.parse(metadata.playerDetails);
+             logger.warn(`TAG:MatchJoinAttempted 2.2 ((((((Starting))))))...`);
+             let nakamaPlayerData=new NakamaPlayerData(presence.userId,presence.sessionId,presence.username);
+             let joinPlayerState = new PlayerStateData(playerDetails, nakamaPlayerData);
+             logger.warn(`TAG:MatchJoinAttempted 2.3 ((((((Starting)))))) joinPlayerState: ||${JSON.stringify(joinPlayerState)}||`);
+             playerState.AddPlayer(joinPlayerState);
+             logger.warn(`TAG:MatchJoinAttempted 2.4 ((((((parse successfully))))))...`);
+         } catch (ex)
+         {
+             logger.warn(`TAG:MatchJoinAttempted 2 parse failed ${ex}`);
+         }
+        logger.warn(`TAG:MatchJoinAttempted player accepted`);
         return {
             state,
             accept: true,
@@ -81,10 +89,11 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
     }
     else
     {
+        logger.warn(`TAG:MatchJoinAttempted player rejected`);
         return {
             state,
             accept: false,
-            rejectMessage:''
+            rejectMessage:'Room is Full'
         };
     }
 }
@@ -101,9 +110,7 @@ const Dune_MatchJoin: nkruntime.MatchJoinFunction = function (ctx: nkruntime.Con
         matchMeta.matchState=MatchStateCode.WaitingForPlayerReady;
         dispatcher.broadcastMessage(1,playerReadyResponse,null,null,true);
     }
-    logger.warn(`TAG:MatchJoin ${matchMeta}`);
-    logger.warn(`TAG:MatchJoin ${state.toString()}`);
-
+    logger.warn(`TAG:MatchJoin ${JSON.stringify(state)}`);
     return {
         state
     }
@@ -124,11 +131,11 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
 {
     let matchMeta:MatchMakeState=state.matchMeta;
     let currentTime=Date.now();
-    let playersState:PlayersState=state.players;
-    switch (matchMeta.matchState)
+    let playersState:PlayersStateGame=state.players;
+    let currentMatchState=matchMeta._matchState;
+    logger.warn(`TAG::RRRR tick${tick} ${JSON.stringify(matchMeta)}|| matchMeta.matchState :${currentMatchState} RoomID${matchMeta.roomId}`);
+    switch (currentMatchState)
     {
-        case MatchStateCode.MatchInitialized:
-            break;
         case MatchStateCode.WaitingForMatchMaking:
             {
                 if(currentTime > matchMeta.matchMakingEndTime)
@@ -147,7 +154,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                     else
                     {
                         //TODO write dispatcher message here
-                        logger.warn("TAG::Match not found force stop");
+                        logger.warn("TAG::Match min player not found match force stop");
                         return null;
                     }
                 }
@@ -173,7 +180,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                     if(msg.opCode == PacketCode.PlayerReady)
                     {
                         let uId=msg.sender.userId;
-                        let t=playersState.player.get(uId);
+                        let t=playersState.players.get(uId);
                         if(t != undefined)
                         {
                             t.playerReady = true;
@@ -190,20 +197,20 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                 }
             } else
             {
-                logger.warn("TAG::Match found by player took too long to get ready forceStop");
+                logger.warn("TAG::Match found but player took too long to get ready so forceStop");
                 return null;
             }
         }
         case MatchStateCode.StartCountDown:
         {
-            if(matchMeta.countDown>=0 && currentTime>matchMeta.lastCountTime)
+            if(matchMeta.countDown>0 && currentTime>matchMeta.lastCountTime)
             {
                 logger.warn(`TAG::Match ####Count Down ${matchMeta.countDown}........####`);
                 dispatcher.broadcastMessage(PacketCode.CountDown, matchMeta.countDown.toString(),null,null,true);
                 matchMeta.countDown-=1;
                 matchMeta.lastCountTime=currentTime+1000;//added sec
             }
-            else
+            else if(matchMeta.countDown<=0)
             {
                 matchMeta.matchState=MatchStateCode.MatchStarted;
                 logger.warn(`TAG::Match ####Count Down Over Start Game ${matchMeta.countDown}........####`);
@@ -216,8 +223,9 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
         case MatchStateCode.MatchStarted:
         {
             //check all player ready is received
-            logger.warn(`TAG::Match *****GameLogic running........***`);
-            if (matchMeta.currentPlayerCount >= matchMeta.minPlayerCount)
+            let remainingSec=(matchMeta.gamePlayEndTime-currentTime)/1000;
+            logger.warn(`TAG::Match *****GameLogic running........remainingSec:${remainingSec}***`);
+            if (currentTime>matchMeta.gamePlayEndTime)
             {
                 logger.warn(`TAG::Match !!!!!!Game Over time out........!!!!!!`);
                 dispatcher.broadcastMessage(PacketCode.GameOverTime, matchMeta.countDown.toString(),null,null,true);
@@ -248,6 +256,6 @@ const Dune_MatchTerminate: nkruntime.MatchTerminateFunction = function (ctx: nkr
 } | null
 {
     dune_waitingMap.DeletedByMatchId(ctx.matchId);
-    logger.warn(`Tag::serverBase MatchTerminate mmr is ${ctx.matchId}`);
+    logger.warn(`TAG::Match !!!!!!^^^^^Dune_MatchTerminate time out........^^^^^!!!!!! is ${ctx.matchId}`);
     return {state};
 }

@@ -74,7 +74,6 @@ enum ResponseCode {
 enum MatchStateCode
 {
     MatchCreated,
-    MatchInitialized,
     WaitingForMatchMaking,
     WaitingForPlayerReady,
     StartCountDown,
