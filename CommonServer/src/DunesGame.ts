@@ -83,8 +83,14 @@ const Dune_MatchJoin: nkruntime.MatchJoinFunction = function (ctx: nkruntime.Con
 {
     let matchMeta:MatchMateState=state.matchMeta;
     matchMeta.currentPlayerCount+=1;
+    if(matchMeta.currentPlayerCount == matchMeta.maxPlayerCount)
+    {
+        // Max player found so starting the match 
+        matchMeta.matchStated==true;
+    }
     logger.warn(`TAG:MatchJoin ${matchMeta}`);
     logger.warn(`TAG:MatchJoin ${state.toString()}`);
+
     return {
         state
     }
