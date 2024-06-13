@@ -57,7 +57,7 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
 {
     logger.warn(`TAG:MatchJoinAttempted 1`);
     let matchMeta:MatchMakeState=state.matchMeta;
-    logger.warn(`TAG:MatchJoinAttempted state: ${state.toString()}`);
+    logger.warn(`TAG:MatchJoinAttempted state: ${JSON.stringify(state.toString)}`);
     logger.warn(`TAG:MatchJoinAttempted metadata:${JSON.stringify(metadata)}`);
     let playerState: PlayersState=state.players;
     //Resume case need to handled
@@ -154,7 +154,8 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                 else
                 {
                     //Waiting for match making
-                    logger.warn(`TAG::Match waiting........${currentTime.toString()}>${matchMeta.matchMakingEndTime.toString()} || ${currentTime>matchMeta.matchMakingEndTime}`);
+                    let remainingSec=(matchMeta.matchMakingEndTime-currentTime)/1000;
+                    logger.warn(`TAG::Match MatchMaking waiting ........$ time left:${remainingSec}`);
                     return {
                         state
                     }
@@ -165,6 +166,8 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
         {
             if (currentTime > matchMeta.waitingPlayReadyEndTime)
             {
+                let remainingSec=(matchMeta.waitingPlayReadyEndTime-currentTime)/1000;
+                logger.warn(`TAG::Match playerReady waiting........$ time left:${remainingSec}`);
                 for (const msg of messages)
                 {
                     if(msg.opCode == PacketCode.PlayerReady)
@@ -179,8 +182,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                 }
                 if(playersState.IsAllPlayerReady())
                 {
-                    // matchMeta.gamePlayStartTime = currentTime;
-                    // matchMeta.gamePlayEndTime = currentTime+ matchMeta.gamePlayTime * 1000;
+                    logger.warn(`TAG::Match ####All playerReady received........####`);
                     matchMeta.matchState=MatchStateCode.StartCountDown;
                 }
                 return {
@@ -196,6 +198,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
         {
             if(matchMeta.countDown>=0 && currentTime>matchMeta.lastCountTime)
             {
+                logger.warn(`TAG::Match ####Count Down ${matchMeta.countDown}........####`);
                 dispatcher.broadcastMessage(PacketCode.CountDown, matchMeta.countDown.toString(),null,null,true);
                 matchMeta.countDown-=1;
                 matchMeta.lastCountTime=currentTime+1000;//added sec
@@ -203,6 +206,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
             else
             {
                 matchMeta.matchState=MatchStateCode.MatchStarted;
+                logger.warn(`TAG::Match ####Count Down Over Start Game ${matchMeta.countDown}........####`);
                 dispatcher.broadcastMessage(PacketCode.StartGame, matchMeta.countDown.toString(),null,null,true);
             }
             return {
@@ -212,11 +216,13 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
         case MatchStateCode.MatchStarted:
         {
             //check all player ready is received
+            logger.warn(`TAG::Match *****GameLogic running........***`);
             if (matchMeta.currentPlayerCount >= matchMeta.minPlayerCount)
             {
+                logger.warn(`TAG::Match !!!!!!Game Over time out........!!!!!!`);
                 dispatcher.broadcastMessage(PacketCode.GameOverTime, matchMeta.countDown.toString(),null,null,true);
             }
-            logger.warn("TAG::Match GameLogic");
+
             return {
                 state
             }

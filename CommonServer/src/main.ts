@@ -1,7 +1,7 @@
 let InitModule: nkruntime.InitModule = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, initializer: nkruntime.Initializer)
 {
 
-    logger.warn('Tag::serverMain start Init===++');
+    logger.warn('Tag::serverMain start Init===V001');
     //<editor-fold desc="Dunes">
     initializer.registerMatch(dune_gameName, {
         matchInit: Dune_MatchInit,
@@ -14,7 +14,7 @@ let InitModule: nkruntime.InitModule = function (ctx: nkruntime.Context, logger:
     });
     initializer.registerRpc('Dunes_CreateMatch',Dune_CreateMatch);
     //</editor-fold>
-    logger.warn('Tag::serverMain start Done===++');
+    logger.warn('Tag::serverMain start Done===v001');
 }
 
 
