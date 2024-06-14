@@ -57,3 +57,4 @@ const playerScoreSettings = [
         velocity: 30,
     },
 ]
+

@@ -163,26 +163,27 @@ const Dune_MatchLoop: nkruntime.MatchLoopFunction = function (ctx: nkruntime.Con
                 logger.warn("TAG::Match Messages Loop ", message.opCode);
 
                 logger.info('Received %v from %v', message.data, message.sender.userId);
-                //   let messageType = message.opCode;
-                let messagepayload = new Uint8Array(message.data);
-
-                // let player = state.players[message.sender.userId];
-
-                // let playerHeight = 0;
-                // let playerLandingAngle = 0;
-                // let playerVelocity = 0;
-
-                messagepayload.forEach(element => {
-                    logger.warn(`TAG::Match Messages Loop ${element}`);
-                });
+                let messageType = message.opCode;
+                let messagepayload = JSON.parse(JSON.stringify(message.data));
 
 
 
-                // if (messageType == 1)
-                //     player.score += CalculateHeightScore(playerHeight, player.lastLanding);
-                // else if (messageType == 2)
-                //     player.lastLanding = CalculateLandingScore(playerLandingAngle, playerVelocity);
-                // dispatcher.broadcastMessage(1, player, [message.sender], null);
+
+
+                let player = state.players[message.sender.userId];
+
+
+                if (messageType == 1) {
+                    let score = CalculateHeightScore(messagepayload.playerHeight, player.lastLanding);
+                    logger.warn("TAG::Match Messages Loop 1  ", score);
+                    player.score += score;
+                }
+                else if (messageType == 2) {
+                    let score = CalculateLandingScore(messagepayload.playerLandingAngle, messagepayload.playerVelocity);
+                    logger.warn("TAG::Match Messages Loop 2   ", score);
+                    player.lastLanding = score;
+                }
+                // dispatcher.broadcastMessage(1, player, null, null);
             });
             return {
                 state
