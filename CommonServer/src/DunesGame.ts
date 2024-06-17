@@ -196,7 +196,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
             }
         case MatchStateCode.WaitingForPlayerReady:
         {
-            if (currentTime > matchMeta.waitingPlayReadyEndTime)
+            if (currentTime < matchMeta.waitingPlayReadyEndTime)
             {
                 let remainingSec=(matchMeta.waitingPlayReadyEndTime-currentTime)/1000;
                 logger.warn(`TAG::Match playerReady waiting........$ time left:${remainingSec}`);
@@ -228,7 +228,8 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                 return {
                     state
                 }
-            } else
+            }
+            else
             {
                 logger.warn("TAG::Match found but player took too long to get ready so forceStop");
                 return null;
@@ -296,7 +297,6 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                 logger.warn(`TAG::Match !!!!!!Game Over time out........!!!!!!`);
                 dispatcher.broadcastMessage(PacketCode.GameOverTime, matchMeta.countDown.toString(),null,null,true);
             }
-
             return {
                 state
             }
