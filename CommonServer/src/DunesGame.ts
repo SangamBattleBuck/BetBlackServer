@@ -21,24 +21,19 @@ const Dune_CreateMatch: nkruntime.RpcFunction = function (ctx: nkruntime.Context
         let matchList=nk.matchList(1,null,matchDetail.roomId);
         if(matchList.length>0)
         {
-            logger.warn("TAG::dune_roomIds",`=========Found`);
-            let matchId='';
-            for (const match of matchList)
-            {
-                matchId=match.matchId;
-                break;
-            }
+
+            let matchId=matchList[0].matchId;
             let mmData = new MatchMakingResponseData(matchDetail.roomId, matchId);
             let mmResponse = new MatchMakingResponse(mmData);
+            logger.warn(dunne_Tag,`=========RoomFound=======roomId:${matchDetail.roomId} matchId:${matchId}`);
             return JSON.stringify(mmResponse);
         }
         else
         {
-            //let param={roomName:matchDetail.roomId,minPlayerCount: matchDetail.minPlayerCount, maxPlayerCount: matchDetail.maxPlayerCount, autoDestroyRoom:matchDetail.autoDestroyRoom}
             let matchId = nk.matchCreate(dune_gameName,matchDetail);
             let mmData=new MatchMakingResponseData(matchDetail.roomId,matchId);
             let mmResponse = new MatchMakingResponse(mmData);
-            logger.warn('TAG::MMMMM',`Created ${JSON.stringify(mmResponse)}`);
+            logger.warn(dunne_Tag,`=========RoomCreated=======roomId:${matchDetail.roomId} matchId:${matchId}`);
             return  JSON.stringify(mmResponse);
         }
     }
