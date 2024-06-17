@@ -1,6 +1,6 @@
-let dune_waitingMap= new WaitingMatches<MatchMakingResponse>();
 const dune_gameName: string = 'Dunes';
 const dunne_Tag:string='TAG::Dunes';
+
 const Dune_CreateMatch: nkruntime.RpcFunction = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, payload: string): string
 {
     let responseJson = emptyResponse;
@@ -18,16 +18,29 @@ const Dune_CreateMatch: nkruntime.RpcFunction = function (ctx: nkruntime.Context
     }
     else
     {
-        let mmResponse = dune_waitingMap.GetMMRByRoomId(matchDetail.roomId);
-        if (mmResponse == undefined)
+        let matchList=nk.matchList(1,null,matchDetail.roomId);
+        if(matchList.length>0)
+        {
+            logger.warn("TAG::dune_roomIds",`=========Found`);
+            let matchId='';
+            for (const match of matchList)
+            {
+                matchId=match.matchId;
+                break;
+            }
+            let mmData = new MatchMakingResponseData(matchDetail.roomId, matchId);
+            let mmResponse = new MatchMakingResponse(mmData);
+            return JSON.stringify(mmResponse);
+        }
+        else
         {
             //let param={roomName:matchDetail.roomId,minPlayerCount: matchDetail.minPlayerCount, maxPlayerCount: matchDetail.maxPlayerCount, autoDestroyRoom:matchDetail.autoDestroyRoom}
             let matchId = nk.matchCreate(dune_gameName,matchDetail);
             let mmData=new MatchMakingResponseData(matchDetail.roomId,matchId);
-            mmResponse = new MatchMakingResponse(mmData);
-            dune_waitingMap.Set(matchDetail.roomId, matchId, mmResponse);
+            let mmResponse = new MatchMakingResponse(mmData);
+            logger.warn('TAG::MMMMM',`Created ${JSON.stringify(mmResponse)}`);
+            return  JSON.stringify(mmResponse);
         }
-        return  JSON.stringify(mmResponse);
     }
 }
 
@@ -46,7 +59,7 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
             players: {},
         },
         tickRate: 1, // 1 tick per second = 1 MatchLoop func invocations per second
-        label: dune_gameName
+        label: matchMeta.roomId
     };
 }
 
@@ -298,7 +311,6 @@ const Dune_MatchTerminate: nkruntime.MatchTerminateFunction = function (ctx: nkr
     state: nkruntime.MatchState
 } | null
 {
-    dune_waitingMap.DeletedByMatchId(ctx.matchId);
     logger.warn(`TAG::Match !!!!!!^^^^^Dune_MatchTerminate time out........^^^^^!!!!!! is ${ctx.matchId}`);
     return {state};
 }

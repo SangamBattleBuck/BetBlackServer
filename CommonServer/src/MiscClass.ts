@@ -210,51 +210,51 @@ class MatchMakingResponse extends ApiResponse<MatchMakingResponseData>
 
 //<editor-fold desc="supporting Functional Data class">
 
-class WaitingMatches<T>
-{
-    public waitingMatchesByRoomId: Map<string, T>;
-    public waitingMatchesByMatchId: Map<string, T>;
-
-    public constructor()
-    {
-        this.waitingMatchesByRoomId = new Map<string, T>();
-        this.waitingMatchesByMatchId = new Map<string, T>();
-    }
-
-    public Set(roomId: string, matchId: string, mmr: T): void
-    {
-        this.waitingMatchesByRoomId.set(roomId, mmr);
-        this.waitingMatchesByMatchId.set(matchId, mmr);
-    }
-
-    public GetMMRByRoomId(roomId: string): T | undefined
-    {
-        if (this.waitingMatchesByRoomId.has(roomId))
-        {
-            return this.waitingMatchesByRoomId.get(roomId);
-        }
-        return undefined;
-    }
-
-    public GetMMRByMatchId(matchId: string): T | undefined
-    {
-        if (this.waitingMatchesByMatchId.has(matchId))
-        {
-            return this.waitingMatchesByMatchId.get(matchId);
-        }
-        return undefined;
-    }
-
-    public DeletedByRoomId(matchId: string): boolean
-    {
-        this.waitingMatchesByMatchId.delete(matchId)
-        return this.waitingMatchesByRoomId.delete(matchId);
-    }
-
-    public DeletedByMatchId(matchId: string): boolean
-    {
-        this.waitingMatchesByRoomId.delete(matchId)
-        return this.waitingMatchesByMatchId.delete(matchId);
-    }
-}
+// class WaitingMatches<T>
+// {
+//     public waitingMatchesByRoomId: Map<string, T>;
+//     public waitingMatchesByMatchId: Map<string, T>;
+//
+//     public constructor()
+//     {
+//         this.waitingMatchesByRoomId = new Map<string, T>();
+//         this.waitingMatchesByMatchId = new Map<string, T>();
+//     }
+//
+//     public Set(roomId: string, matchId: string, mmr: T): void
+//     {
+//         this.waitingMatchesByRoomId.set(roomId, mmr);
+//         this.waitingMatchesByMatchId.set(matchId, mmr);
+//     }
+//
+//     public GetMMRByRoomId(roomId: string): T | undefined
+//     {
+//         if (this.waitingMatchesByRoomId.has(roomId))
+//         {
+//             return this.waitingMatchesByRoomId.get(roomId);
+//         }
+//         return undefined;
+//     }
+//
+//     public GetMMRByMatchId(matchId: string): T | undefined
+//     {
+//         if (this.waitingMatchesByMatchId.has(matchId))
+//         {
+//             return this.waitingMatchesByMatchId.get(matchId);
+//         }
+//         return undefined;
+//     }
+//
+//     public DeletedByRoomId(matchId: string): boolean
+//     {
+//         this.waitingMatchesByMatchId.delete(matchId)
+//         return this.waitingMatchesByRoomId.delete(matchId);
+//     }
+//
+//     public DeletedByMatchId(matchId: string): boolean
+//     {
+//         this.waitingMatchesByRoomId.delete(matchId)
+//         return this.waitingMatchesByMatchId.delete(matchId);
+//     }
+// }
 //</editor-fold>
