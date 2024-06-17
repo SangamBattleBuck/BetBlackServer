@@ -46,7 +46,10 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
     logger.warn(`TAG:MatchInit 2`);
     let matchMeta= new MatchMakeState(matchDetail.roomId,matchDetail.minPlayerCount,matchDetail.maxPlayerCount,0,matchDetail.matchMakeWaitTime,matchDetail.gamePlayTime);
     // let player=new PlayersStateGame();
+    let currentTime=Date.now();
     matchMeta.matchState=MatchStateCode.WaitingForMatchMaking;
+    matchMeta.matchMakingStartTime = currentTime;
+    matchMeta.matchMakingEndTime = currentTime + matchMeta.matchMakeWaitTime * 1000;
     logger.warn(`TAG:MatchInit 3 matchMakingEndTime ${matchMeta.matchMakingEndTime}`);
     return {
         state: {
@@ -124,6 +127,10 @@ const Dune_MatchJoin: nkruntime.MatchJoinFunction = function (ctx: nkruntime.Con
     {
         // Max player found so starting the match
         matchMeta.matchState=MatchStateCode.WaitingForPlayerReady;
+        let currentTime=Date.now();
+        matchMeta.waitingPlayReadyStartTime = currentTime;
+        matchMeta.waitingPlayReadyEndTime = currentTime + const_PlayerReadyWaitTime * 1000;
+        state.matchMeta=matchMeta;
         dispatcher.broadcastMessage(PacketCode.ServerReady, JSON.stringify(playerDetail),null,null,true);
     }
     logger.warn(`TAG:MatchJoin ${JSON.stringify(state)}`);
@@ -147,7 +154,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
 {
     let matchMeta:MatchMakeState=state.matchMeta;
     let currentTime=Date.now();
-    let currentMatchState=matchMeta._matchState;
+    let currentMatchState=matchMeta.matchState;
     logger.warn(`TAG::RRRR tick${tick} ${JSON.stringify(matchMeta)}|| matchMeta.matchState :${currentMatchState} RoomID${matchMeta.roomId}`);
     switch (currentMatchState)
     {
@@ -160,6 +167,9 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                     {
                         // has found minimum required player so starting the match
                         matchMeta.matchState = MatchStateCode.WaitingForPlayerReady;
+                        matchMeta.waitingPlayReadyStartTime = currentTime;
+                        matchMeta.waitingPlayReadyEndTime = currentTime + const_PlayerReadyWaitTime * 1000;
+                        state.matchMeta=matchMeta;
                         dispatcher.broadcastMessage(PacketCode.ServerReady,playerReadyResponse,null,null,true);
                         logger.warn("TAG::Match min player found now waiting for gameReady Packet");
                         return {
@@ -212,6 +222,8 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                 {
                     logger.warn(`TAG::Match ####All playerReady received........####`);
                     matchMeta.matchState=MatchStateCode.StartCountDown;
+                    matchMeta.lastCountTime = currentTime;
+                    state.matchMeta=matchMeta;
                 }
                 return {
                     state
@@ -234,6 +246,9 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
             else if(matchMeta.countDown<=0)
             {
                 matchMeta.matchState=MatchStateCode.MatchStarted;
+                matchMeta.gamePlayStartTime = currentTime;
+                matchMeta.gamePlayEndTime = currentTime + matchMeta.gamePlayTime * 1000;
+                state.matchMeta=matchMeta;
                 logger.warn(`TAG::Match ####Count Down Over Start Game ${matchMeta.countDown}........####`);
                 dispatcher.broadcastMessage(PacketCode.StartGame, matchMeta.countDown.toString(),null,null,true);
             }

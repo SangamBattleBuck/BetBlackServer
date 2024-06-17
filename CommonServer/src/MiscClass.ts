@@ -56,7 +56,7 @@ class MatchMakeState
     maxPlayerCount: number;
     currentPlayerCount: number;
     matchMakeWaitTime: number;
-    _matchState: MatchStateCode;
+    matchState: MatchStateCode;
     gamePlayTime: number
     matchMakingStartTime: number;
     matchMakingEndTime: number;
@@ -74,7 +74,7 @@ class MatchMakeState
         this.maxPlayerCount = maxPlayerCount;
         this.currentPlayerCount = currentPlayerCount;
         this.matchMakeWaitTime = matchMakeWaitTime;
-        this._matchState = matchStated;
+        this.matchState = matchStated;
         this.gamePlayTime = gamePlayTime;
         this.matchMakingStartTime = 0;
         this.gamePlayStartTime = 0;
@@ -86,37 +86,37 @@ class MatchMakeState
         this.lastCountTime = 0;
     }
 
-    get matchState(): MatchStateCode
-    {
-        return this._matchState;
-    }
+    // get matchState(): MatchStateCode
+    // {
+    //     return this._matchState;
+    // }
 
-    set matchState(value: MatchStateCode)
-    {
-        if (value != this._matchState)
-        {
-            let currentTime = Date.now();
-            switch (value)
-            {
-                case MatchStateCode.MatchCreated:
-                    break;
-                case MatchStateCode.WaitingForMatchMaking:
-                    this.matchMakingStartTime = currentTime;
-                    this.matchMakingEndTime = currentTime + this.matchMakeWaitTime * 1000;
-                    break;
-                case MatchStateCode.WaitingForPlayerReady:
-                    this.waitingPlayReadyStartTime = currentTime;
-                    this.waitingPlayReadyEndTime = currentTime + const_PlayerReadyWaitTime * 1000;
-                    break;
-                case MatchStateCode.MatchStarted:
-                    this.gamePlayStartTime = currentTime;
-                    this.gamePlayEndTime = currentTime + this.gamePlayTime * 1000;
-                    break;
-
-            }
-            this._matchState = value;
-        }
-    }
+    // set matchState(value: MatchStateCode)
+    // {
+    //     if (value != this._matchState)
+    //     {
+    //         let currentTime = Date.now();
+    //         switch (value)
+    //         {
+    //             case MatchStateCode.MatchCreated:
+    //                 break;
+    //             case MatchStateCode.WaitingForMatchMaking:
+    //                 this.matchMakingStartTime = currentTime;
+    //                 this.matchMakingEndTime = currentTime + this.matchMakeWaitTime * 1000;
+    //                 break;
+    //             case MatchStateCode.WaitingForPlayerReady:
+    //                 this.waitingPlayReadyStartTime = currentTime;
+    //                 this.waitingPlayReadyEndTime = currentTime + const_PlayerReadyWaitTime * 1000;
+    //                 break;
+    //             case MatchStateCode.MatchStarted:
+    //                 this.gamePlayStartTime = currentTime;
+    //                 this.gamePlayEndTime = currentTime + this.gamePlayTime * 1000;
+    //                 break;
+    //
+    //         }
+    //         this._matchState = value;
+    //     }
+    // }
 
     toString(): string
     {
