@@ -237,6 +237,36 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
         {
             //check all player ready is received
             let remainingSec=(matchMeta.gamePlayEndTime-currentTime)/1000;
+            for(const msg of messages)
+            {
+                const code:PacketCode=msg.opCode
+                switch (code)
+                {
+                    case PacketCode.PlayerJoin:
+                        break;
+                    case PacketCode.ServerReady:
+                        break;
+                    case PacketCode.PlayerReady:
+                        break;
+                    case PacketCode.CountDown:
+                        break;
+                    case PacketCode.StartGame:
+                        break;
+                    case PacketCode.GameOverTime:
+                        break;
+                    case PacketCode.GameFailedMinPlayerReq:
+                        break;
+                    case PacketCode.GameFailedMinPlayerReqPlayerReady:
+                        break;
+                    case PacketCode.GameOverPlayerLeft:
+                        break;
+                    case PacketCode.BroadCast:
+                        dispatcher.broadcastMessage(PacketCode.BroadCast,msg.data,null,null,true);
+                        break;
+
+                }
+            }
+
             logger.warn(`TAG::Match *****GameLogic running........remainingSec:${remainingSec}***`);
             if (currentTime>matchMeta.gamePlayEndTime)
             {

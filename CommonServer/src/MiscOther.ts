@@ -90,5 +90,6 @@ enum PacketCode
     GameOverTime ,
     GameFailedMinPlayerReq,
     GameFailedMinPlayerReqPlayerReady,
-    GameOverPlayerLeft
+    GameOverPlayerLeft,
+    BroadCast
 }
