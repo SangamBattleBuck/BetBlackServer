@@ -82,7 +82,8 @@ enum MatchStateCode
 
 enum PacketCode
 {
-    ServerReady=1,
+    PlayerJoin=1,
+    ServerReady,
     PlayerReady,
     CountDown,
     StartGame,

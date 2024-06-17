@@ -75,7 +75,9 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
              let joinedPlayerState = new PlayerStateData(playerDetails,presence.userId);
              logger.warn(`TAG:MatchJoinAttempted 2.3 ((((((Starting)))))) joinPlayerState: ||${JSON.stringify(joinedPlayerState)}||`);
              state.players[presence.userId]=joinedPlayerState;
-             logger.warn(`TAG:MatchJoinAttempted 2.4 ((((((parse successfully))))))...`);
+             presence.username=metadata.playerDetails.playerName;
+             presence.status=metadata.playerDetails.toString();
+             logger.warn(`TAG:MatchJoinAttempted 2.4 ((((((parse successfully))))))...${presence.status}`);
          } catch (ex)
          {
              logger.warn(`TAG:MatchJoinAttempted 2 parse failed ${ex}`);
@@ -102,12 +104,19 @@ const Dune_MatchJoin: nkruntime.MatchJoinFunction = function (ctx: nkruntime.Con
 } | null
 {
     let matchMeta:MatchMakeState=state.matchMeta;
+
     matchMeta.currentPlayerCount+=1;
+    let playerDetail:{[key: string]: any;}={};
+    for (const p in state.players) {
+        let t=state.players[p].playerDetails;
+        playerDetail[p]=t;
+    }
+    dispatcher.broadcastMessage(PacketCode.PlayerJoin, JSON.stringify(playerDetail),null,null,true);
     if(matchMeta.currentPlayerCount == matchMeta.maxPlayerCount)
     {
         // Max player found so starting the match
         matchMeta.matchState=MatchStateCode.WaitingForPlayerReady;
-        dispatcher.broadcastMessage(1,playerReadyResponse,null,null,true);
+        dispatcher.broadcastMessage(PacketCode.ServerReady, JSON.stringify(playerDetail),null,null,true);
     }
     logger.warn(`TAG:MatchJoin ${JSON.stringify(state)}`);
     return {
