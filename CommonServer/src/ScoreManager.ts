@@ -58,3 +58,26 @@ const playerScoreSettings = [
     },
 ]
 
+function SetPlayerScore(messages: nkruntime.MatchMessage[], state: any) {
+
+
+    messages.forEach(function (message) {
+
+        let messageType = message.opCode;
+        let messagepayload = JSON.parse(JSON.stringify(message.data));
+
+        let player = state.players[message.sender.userId];
+
+
+        if (messageType == 1) {
+            let score = CalculateHeightScore(messagepayload.playerHeight, player.lastLanding);
+            player.score += score;
+        }
+        else if (messageType == 2) {
+            let score = CalculateLandingScore(messagepayload.playerLandingAngle, messagepayload.playerVelocity);
+            player.lastLanding = score;
+        }
+        // dispatcher.broadcastMessage(1, player, null, null);
+    });
+
+}
