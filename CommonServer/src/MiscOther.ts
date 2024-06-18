@@ -71,8 +71,7 @@ enum ResponseCode {
     NetworkAuthenticationRequired = 511
 }
 
-enum MatchStateCode
-{
+enum MatchStateCode {
     MatchCreated,
     WaitingForMatchMaking,
     WaitingForPlayerReady,
@@ -80,14 +79,14 @@ enum MatchStateCode
     MatchStarted
 }
 
-enum PacketCode
-{
-    PlayerJoin=1,
+enum PacketCode {
+    PlayerJoin = 1,
     ServerReady,
     PlayerReady,
     CountDown,
     StartGame,
-    GameOverTime ,
+    GameTimerUpdate,
+    GameOverTime,
     GameFailedMinPlayerReq,
     GameFailedMinPlayerReqPlayerReady,
     GameOverPlayerLeft,
