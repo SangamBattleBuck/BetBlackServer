@@ -75,7 +75,11 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
      {
          //TODO handle Resume case here
          logger.warn(`TAG:MatchJoinAttempted Resume.... ForceStop`);
-         return null;
+         return {
+             state,
+             accept: false,
+             rejectMessage:'resume case is not handled'
+         };
      } else if (matchMeta.currentPlayerCount <= matchMeta.maxPlayerCount)
      {
          try
@@ -285,7 +289,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                     case PacketCode.GameOverPlayerLeft:
                         break;
                     case PacketCode.BroadCast:
-                        dispatcher.broadcastMessage(PacketCode.BroadCast,msg.data,null,null,true);
+                        dispatcher.broadcastMessage(PacketCode.BroadCast,msg.data,null,msg.sender,true);
                         break;
 
                 }
@@ -296,6 +300,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
             {
                 logger.warn(`TAG::Match !!!!!!Game Over time out........!!!!!!`);
                 dispatcher.broadcastMessage(PacketCode.GameOverTime, matchMeta.countDown.toString(),null,null,true);
+                return null;
             }
             return {
                 state
