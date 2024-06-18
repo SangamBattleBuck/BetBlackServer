@@ -77,7 +77,14 @@ enum MatchStateCode
     WaitingForMatchMaking,
     WaitingForPlayerReady,
     StartCountDown,
-    MatchStarted
+    MatchStarted,
+    Paused
+}
+
+enum GameOverConditionCode
+{
+    GameOverOnMinPlayer,
+    GamePauseOnMinPlayer,
 }
 
 enum PacketCode
@@ -87,9 +94,25 @@ enum PacketCode
     PlayerReady,
     CountDown,
     StartGame,
+    PauseRemainingTime,
+    WaitForPlayerInGamePlay,
     GameOverTime ,
     GameFailedMinPlayerReq,
     GameFailedMinPlayerReqPlayerReady,
     GameOverPlayerLeft,
+    GameOverFailedToResume,
     BroadCast
+}
+
+const WorldTimeApiUrl = "https://worldtimeapi.org/api/timezone/Etc/UTC";
+interface WorldTimeApiResponse {
+    utc_datetime: string;
+}
+
+function CallAPI(apiBaseUrl : string,nk: nkruntime.Nakama, name: string)
+{
+    let url = apiBaseUrl + '/pokemon/' + name;
+    let headers = {'Accept': 'application/json'};
+    let response = nk.httpRequest(url, 'get', headers);
+    return JSON.parse(response.body);
 }

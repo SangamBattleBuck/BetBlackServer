@@ -4,6 +4,18 @@ const dunne_Tag:string='TAG::Dunes';
 const Dune_CreateMatch: nkruntime.RpcFunction = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, payload: string): string
 {
     let responseJson = emptyResponse;
+    //Testing API call
+    try
+    {
+        logger.warn(`TAG:API__API Calling`);
+        let apiResponse=CallAPI('https://pokeapi.co/api/v2',nk,'');
+        logger.warn(`TAG:API__API Success${JSON.stringify(apiResponse)}`);
+    }
+    catch (ex)
+    {
+        logger.warn(`TAG:API__API Failed `);
+    }
+    //Testing API call
     let matchDetail: MatchMakingDetailsReceived | null = null;
     try
     {
@@ -44,7 +56,8 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
     logger.warn(`TAG:MatchInit 1`);
     let matchDetail:MatchMakingDetailsReceived=params as MatchMakingDetailsReceived;
     logger.warn(`TAG:MatchInit 2`);
-    let matchMeta= new MatchMakeState(matchDetail.roomId,matchDetail.minPlayerCount,matchDetail.maxPlayerCount,0,matchDetail.matchMakeWaitTime,matchDetail.gamePlayTime);
+    //let matchMeta= new MatchMakeState(matchDetail.roomId,matchDetail.minPlayerCount,matchDetail.maxPlayerCount,0,matchDetail.matchMakeWaitTime,matchDetail.gamePlayTime,matchDetail.gameOverCondition,matchDetail.gameOverConditionWaitTime);
+    let matchMeta= new MatchMakeState(matchDetail);
     // let player=new PlayersStateGame();
     let currentTime=Date.now();
     matchMeta.matchState=MatchStateCode.WaitingForMatchMaking;
@@ -71,9 +84,33 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
      logger.warn(`TAG:MatchJoinAttempted metadata:${JSON.stringify(metadata)}`);
 
 
-     if (matchMeta.matchState == MatchStateCode.StartCountDown || matchMeta.matchState == MatchStateCode.MatchStarted)
+     if (matchMeta.matchState == MatchStateCode.Paused || matchMeta.matchState == MatchStateCode.StartCountDown || matchMeta.matchState == MatchStateCode.MatchStarted)
      {
-         //TODO handle Resume case here
+
+         try
+         {
+             logger.warn(`TAG:MatchJoinAttempted Resume 1 ((((((Starting))))))...`);
+             let currentJoinplayerDetails: PlayerDetailReceived = JSON.parse(metadata.playerDetails);
+             for (const p in state.players) //only allow player who were present at the time of starting the match
+             {
+                 //Update new UserId
+                 let playerGameId = state.players[p].playerDetails.playerGameId;
+                 if (playerGameId == currentJoinplayerDetails.playerGameId)
+                 {
+                     state.players[p].userId=presence.userId;
+                     state.players[p].playerDetails=currentJoinplayerDetails;
+                 }
+                 return {
+                     state,
+                     accept: true,
+                     rejectMessage:'resume Game'
+                 };
+             }
+         }
+         catch (ex)
+         {
+             logger.warn(`TAG:MatchJoinAttempted Resume parse failed ${ex}`);
+         }
          logger.warn(`TAG:MatchJoinAttempted Resume.... ForceStop`);
          return {
              state,
@@ -93,7 +130,8 @@ const Dune_MatchInit: nkruntime.MatchInitFunction<nkruntime.MatchState> = functi
              presence.username=metadata.playerDetails.playerName;
              presence.status=metadata.playerDetails.toString();
              logger.warn(`TAG:MatchJoinAttempted 2.4 ((((((parse successfully))))))...${presence.status}`);
-         } catch (ex)
+         }
+         catch (ex)
          {
              logger.warn(`TAG:MatchJoinAttempted 2 parse failed ${ex}`);
          }
@@ -127,7 +165,16 @@ const Dune_MatchJoin: nkruntime.MatchJoinFunction = function (ctx: nkruntime.Con
         playerDetail[p]=t;
     }
     dispatcher.broadcastMessage(PacketCode.PlayerJoin, JSON.stringify(playerDetail),null,null,true);
-    if(matchMeta.currentPlayerCount == matchMeta.maxPlayerCount)
+    if(matchMeta.matchState == MatchStateCode.Paused && matchMeta.currentPlayerCount == matchMeta.minPlayerCount)
+    {
+        //If current game state is paused we will check if minimum player required is present if so start the count down
+        //RESUME CASE handling
+        matchMeta.matchState=MatchStateCode.WaitingForPlayerReady;
+        let currentTime=Date.now();
+        matchMeta.waitingPlayReadyStartTime = currentTime;
+        matchMeta.waitingPlayReadyEndTime = currentTime + const_PlayerReadyWaitTime * 1000;
+    }
+    else if(matchMeta.matchState == MatchStateCode.WaitingForMatchMaking && matchMeta.currentPlayerCount == matchMeta.maxPlayerCount)
     {
         // Max player found so starting the match
         matchMeta.matchState=MatchStateCode.WaitingForPlayerReady;
@@ -147,8 +194,24 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
     state: nkruntime.MatchState
 } | null
 {
-    let matchMeta:MatchMakeState=state.matchMeta;
-    matchMeta.currentPlayerCount-=1;
+    const currentTime = Date.now()
+    let matchMeta: MatchMakeState = state.matchMeta;
+    matchMeta.currentPlayerCount -= 1;
+    for (const p of presences)
+    {
+        state.players[p.userId].playerReady = false;
+    }
+    if (matchMeta.currentPlayerCount < matchMeta.minPlayerCount && matchMeta.gamePausedEndTime < currentTime)
+    {
+
+        if (matchMeta.gameOverCondition == GameOverConditionCode.GamePauseOnMinPlayer)
+        {
+            matchMeta.matchState = MatchStateCode.Paused;
+        }
+        matchMeta.gamePausedStartTime = currentTime;
+        matchMeta.gamePausedEndTime = currentTime + matchMeta.gameOverConditionWaitTime * 1000;
+    }
+    state.matchMeta = matchMeta;
     return {state};
 }
 
@@ -226,6 +289,7 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
                 {
                     logger.warn(`TAG::Match ####All playerReady received........####`);
                     matchMeta.matchState=MatchStateCode.StartCountDown;
+                    matchMeta.currentCountDown = matchMeta.countDown;
                     matchMeta.lastCountTime = currentTime;
                     state.matchMeta=matchMeta;
                 }
@@ -241,18 +305,26 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
         }
         case MatchStateCode.StartCountDown:
         {
-            if(matchMeta.countDown>0 && currentTime>matchMeta.lastCountTime)
+            if(matchMeta.currentCountDown>0 && currentTime>matchMeta.lastCountTime)
             {
                 logger.warn(`TAG::Match ####Count Down ${matchMeta.countDown}........####`);
                 dispatcher.broadcastMessage(PacketCode.CountDown, matchMeta.countDown.toString(),null,null,true);
-                matchMeta.countDown-=1;
+                matchMeta.currentCountDown-=1;
                 matchMeta.lastCountTime=currentTime+1000;//added sec
             }
-            else if(matchMeta.countDown<=0)
+            else if(matchMeta.currentCountDown<=0)
             {
                 matchMeta.matchState=MatchStateCode.MatchStarted;
-                matchMeta.gamePlayStartTime = currentTime;
-                matchMeta.gamePlayEndTime = currentTime + matchMeta.gamePlayTime * 1000;
+                if(matchMeta.gamePlayEndTime == 0)
+                {
+                    matchMeta.gamePlayStartTime = currentTime;
+                    matchMeta.gamePlayEndTime = currentTime + matchMeta.gamePlayTime * 1000;
+                }
+                else
+                {
+                    let pausedTime=100;
+                    matchMeta.gamePlayEndTime +=  pausedTime * 1000;
+                }
                 state.matchMeta=matchMeta;
                 logger.warn(`TAG::Match ####Count Down Over Start Game ${matchMeta.countDown}........####`);
                 dispatcher.broadcastMessage(PacketCode.StartGame, matchMeta.countDown.toString(),null,null,true);
@@ -264,6 +336,21 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
         case MatchStateCode.MatchStarted:
         {
             //check all player ready is received
+            if(matchMeta.gameOverCondition == GameOverConditionCode.GamePauseOnMinPlayer)
+            {
+                if(matchMeta.currentPlayerCount<matchMeta.minPlayerCount && matchMeta.gameOverConditionWaitTime>0)
+                {
+                    //TODO Continue playing but also try to wat
+                    let rc=(matchMeta.gamePausedEndTime-currentTime)/1000;
+                    if (currentTime>matchMeta.gamePausedEndTime)
+                    {
+                        //TODO conclude game here
+                        dispatcher.broadcastMessage(PacketCode.GameOverFailedToResume, 'Game was paused to long game over',null,null,true);
+                        return null;
+                    }
+                    dispatcher.broadcastMessage(PacketCode.WaitForPlayerInGamePlay, rc.toString(),null,null,true);
+                }
+            }
             let remainingSec=(matchMeta.gamePlayEndTime-currentTime)/1000;
             for(const msg of messages)
             {
@@ -298,10 +385,25 @@ const Dune_MatchLeave: nkruntime.MatchLeaveFunction = function (ctx: nkruntime.C
             logger.warn(`TAG::Match *****GameLogic running........remainingSec:${remainingSec}***`);
             if (currentTime>matchMeta.gamePlayEndTime)
             {
+                //TODO conclude game here
                 logger.warn(`TAG::Match !!!!!!Game Over time out........!!!!!!`);
                 dispatcher.broadcastMessage(PacketCode.GameOverTime, matchMeta.countDown.toString(),null,null,true);
                 return null;
             }
+            return {
+                state
+            }
+        }
+        case MatchStateCode.Paused:
+        {
+            let remainingSec=(matchMeta.gamePausedEndTime-currentTime)/1000;
+            if (currentTime>matchMeta.gamePausedEndTime)
+            {
+                //TODO conclude game here
+                dispatcher.broadcastMessage(PacketCode.GameOverFailedToResume, 'Game was paused to long game over',null,null,true);
+                return null;
+            }
+            dispatcher.broadcastMessage(PacketCode.PauseRemainingTime, remainingSec.toString(),null,null,true);
             return {
                 state
             }
