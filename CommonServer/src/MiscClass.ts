@@ -1,22 +1,20 @@
 const emptyResponse = '{responseCode:501,\nmessage:\"emptyResponse or NotImplemented or improper json received \"}';
 const playerReadyResponse = '{responseCode:200,\nmessage:\"Server is ready waiting for you to send player ready (opcode =2)\"}';
-const const_Str_Success='Success';
-const const_PlayerReadyWaitTime=100;
+const const_Str_Success = 'Success';
+const const_PlayerReadyWaitTime = 100;
 
 //<editor-fold desc="gameState Data class">
 
-class PlayerStateData
-{
-    userId:string;
+class PlayerStateData {
+    userId: string;
     playerDetails: PlayerDetailReceived;
     score: number;
-    playerReady:boolean;
-    public constructor(playerDetails: PlayerDetailReceived,userId :string)
-    {
+    playerReady: boolean;
+    public constructor(playerDetails: PlayerDetailReceived, userId: string) {
         this.playerDetails = playerDetails;
         this.score = 0;
-        this.playerReady=false;
-        this.userId=userId;
+        this.playerReady = false;
+        this.userId = userId;
     }
 }
 
@@ -49,8 +47,7 @@ class PlayerStateData
 //     }
 // }
 
-class MatchMakeState
-{
+class MatchMakeState {
     roomId: string;
     minPlayerCount: number;
     maxPlayerCount: number;
@@ -67,8 +64,7 @@ class MatchMakeState
     countDown: number;
     lastCountTime: number;
 
-    constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, currentPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number, matchStated = MatchStateCode.MatchCreated)
-    {
+    constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, currentPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number, matchStated = MatchStateCode.MatchCreated) {
         this.roomId = roomId;
         this.minPlayerCount = minPlayerCount;
         this.maxPlayerCount = maxPlayerCount;
@@ -82,7 +78,7 @@ class MatchMakeState
         this.gamePlayEndTime = 0;
         this.waitingPlayReadyStartTime = 0;
         this.waitingPlayReadyEndTime = 0;
-        this.countDown = 5;
+        this.countDown = 10;
         this.lastCountTime = 0;
     }
 
@@ -118,8 +114,7 @@ class MatchMakeState
     //     }
     // }
 
-    toString(): string
-    {
+    toString(): string {
         return `{roomId:${this.roomId},minPlayerCount:${this.minPlayerCount},
         maxPlayerCount:${this.maxPlayerCount},currentPlayerCount:${this.currentPlayerCount}, 
         matchMakeWaitTime:${this.matchMakeWaitTime},matchStated:${this.matchState},
@@ -130,16 +125,14 @@ class MatchMakeState
 
 //<editor-fold desc="receiving Data class">
 
-class MatchMakingDetailsReceived
-{
-    roomId: string ;
+class MatchMakingDetailsReceived {
+    roomId: string;
     minPlayerCount: number;
     maxPlayerCount: number;
     matchMakeWaitTime: number;
     gamePlayTime: number
 
-    constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number)
-    {
+    constructor(roomId: string, minPlayerCount: number, maxPlayerCount: number, matchMakeWaitTime: number, gamePlayTime: number) {
         this.roomId = roomId;
         this.minPlayerCount = minPlayerCount;
         this.maxPlayerCount = maxPlayerCount;
@@ -148,8 +141,7 @@ class MatchMakingDetailsReceived
     }
 
     // Method to display student information
-    toString(): string
-    {
+    toString(): string {
         return `{roomId: ${this.roomId},minPlayerCount: ${this.minPlayerCount},
         maxPlayerCount: ${this.maxPlayerCount},matchMakeWaitTime: ${this.matchMakeWaitTime}}
         ,gamePlayTime:${this.gamePlayTime}`;
@@ -158,15 +150,13 @@ class MatchMakingDetailsReceived
 
 }
 
-class PlayerDetailReceived
-{
+class PlayerDetailReceived {
     playerName: string;
     playerAvatarId: string;
     playerGameId: string;
     playerDeviceId: string;
 
-    constructor(playerName: string, playerAvatarId: string, playerGameId: string, playerDeviceId: string)
-    {
+    constructor(playerName: string, playerAvatarId: string, playerGameId: string, playerDeviceId: string) {
         this.playerName = playerName;
         this.playerAvatarId = playerAvatarId;
         this.playerGameId = playerGameId;
@@ -177,33 +167,28 @@ class PlayerDetailReceived
 
 //<editor-fold desc="Response Data class">
 
-abstract class ApiResponse<T>
-{
+abstract class ApiResponse<T> {
     responseCode: ResponseCode;
     message: string;
     data: T;
 
-    constructor(data: T,responseCode: ResponseCode = ResponseCode.OK, message: string = const_Str_Success)
-    {
+    constructor(data: T, responseCode: ResponseCode = ResponseCode.OK, message: string = const_Str_Success) {
         this.responseCode = responseCode;
         this.message = message;
         this.data = data;
     }
 }
 
-class MatchMakingResponseData
-{
+class MatchMakingResponseData {
     roomId: string;
     matchId: string;
-    constructor(roomId: string, matchId: string)
-    {
+    constructor(roomId: string, matchId: string) {
         this.roomId = roomId;
         this.matchId = matchId;
     }
 }
 
-class MatchMakingResponse extends ApiResponse<MatchMakingResponseData>
-{
+class MatchMakingResponse extends ApiResponse<MatchMakingResponseData> {
 
 }
 //</editor-fold>
