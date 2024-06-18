@@ -1,3 +1,7 @@
+const Get_Ping: nkruntime.RpcFunction = (ctx, logger, nk, payload) => {
+    return JSON.stringify({ message: "pong" });
+};
+
 
 let InitModule: nkruntime.InitModule = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, initializer: nkruntime.Initializer) {
 
@@ -13,9 +17,7 @@ let InitModule: nkruntime.InitModule = function (ctx: nkruntime.Context, logger:
         matchTerminate: Dune_MatchTerminate,
     });
     initializer.registerRpc('Dunes_CreateMatch', Dune_CreateMatch);
+    initializer.registerRpc("Get_Ping", Get_Ping);
     //</editor-fold>
     logger.warn('Tag::serverMain start Done===v003');
 }
-
-
-
